@@ -18,7 +18,12 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-
+const route = [
+  { latitude: 50.0614, longitude: 19.9372 }, // Rynek Główny
+  { latitude: 50.0620, longitude: 19.9390 }, // w stronę ulicy Floriańskiej
+  { latitude: 50.0630, longitude: 19.9405 }, // przy Kościele Mariackim
+  { latitude: 50.0640, longitude: 19.9420 }, // w stronę Bramy Floriańskiej
+];
 const { width, height } = Dimensions.get("window");
 
 interface Stop {
@@ -36,7 +41,8 @@ export default function LiveTrackScreen() {
 
   const [currentStop, setCurrentStop] = useState(2);
   const [progress] = useState(new Animated.Value(0));
-  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const [userLocation, setUserLocation] =
+    useState<Location.LocationObject | null>(null);
   const [locationPermission, setLocationPermission] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
@@ -91,8 +97,14 @@ export default function LiveTrackScreen() {
       const { status } = await Location.requestForegroundPermissionsAsync();
       if (status === "granted") {
         setLocationPermission(true);
-        const location = await Location.getCurrentPositionAsync({});
-        setUserLocation(location);
+        // const location = await Location.getCurrentPositionAsync({});
+        // setUserLocation(location);
+        setUserLocation({
+  coords: {
+    latitude: 50.0614,
+    longitude: 19.9372,
+  },
+} as Location.LocationObject);
       }
     })();
   }, []);
@@ -134,308 +146,352 @@ export default function LiveTrackScreen() {
       style={styles.container}
       resizeMode="cover"
     >
-      <ThemedView style={[styles.container, { backgroundColor: "transparent" }]}>
-      {/* Fullscreen Map Modal */}
-      <Modal
-        visible={isMapFullscreen}
-        animationType="slide"
-        onRequestClose={() => setIsMapFullscreen(false)}
+      <ThemedView
+        style={[styles.container, { backgroundColor: "transparent" }]}
       >
-        <View style={styles.fullscreenMapContainer}>
-          {userLocation && (Platform.OS === "ios" ? (
-            <AppleMaps.View
-              style={styles.map}
-              cameraPosition={{
-                coordinates: {
-                  latitude: userLocation.coords.latitude,
-                  longitude: userLocation.coords.longitude,
-                },
-                zoom: 14,
-              }}
-              markers={[
-                {
-                  id: "user",
-                  coordinates: {
-                    latitude: userLocation.coords.latitude,
-                    longitude: userLocation.coords.longitude,
-                  },
-                  title: "Twoja Lokalizacja",
-                },
-              ]}
-            />
-          ) : (
-            <GoogleMaps.View
-              style={styles.map}
-              cameraPosition={{
-                coordinates: {
-                  latitude: userLocation.coords.latitude,
-                  longitude: userLocation.coords.longitude,
-                },
-                zoom: 14,
-              }}
-              markers={[
-                {
-                  id: "user",
-                  coordinates: {
-                    latitude: userLocation.coords.latitude,
-                    longitude: userLocation.coords.longitude,
-                  },
-                  title: "Twoja Lokalizacja",
-                },
-              ]}
-            />
-          ))}
-          
-          {/* Close Fullscreen Button */}
-          <TouchableOpacity
-            style={[styles.fullscreenExitButton, { backgroundColor: colors.card }]}
-            onPress={() => setIsMapFullscreen(false)}
-          >
-            <MaterialIcons
-              name="fullscreen-exit"
-              size={20}
-              color={colors.text}
-            />
-            <ThemedText style={[styles.fullscreenButtonText, { color: colors.text }]}>
-              Wyjdź z Pełnego Ekranu
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </Modal>
+        {/* Fullscreen Map Modal */}
+        <Modal
+          visible={isMapFullscreen}
+          animationType="slide"
+          onRequestClose={() => setIsMapFullscreen(false)}
+        >
+          <View style={styles.fullscreenMapContainer}>
+            {userLocation &&
+              (Platform.OS === "ios" ? (
+                <AppleMaps.View
+                  style={styles.map}
+                  cameraPosition={{
+                    coordinates: {
+                      latitude: userLocation.coords.latitude,
+                      longitude: userLocation.coords.longitude,
+                    },
+                    zoom: 14,
+                  }}
+                  markers={[
+                    {
+                      id: "user",
+                      coordinates: {
+                        latitude: userLocation.coords.latitude,
+                        longitude: userLocation.coords.longitude,
+                      },
+                      title: "Twoja Lokalizacja",
+                    },
+                  ]}
+                />
+              ) : (
+                <GoogleMaps.View
+                  style={styles.map}
+                  cameraPosition={{
+                    coordinates: {
+                      latitude: userLocation.coords.latitude,
+                      longitude: userLocation.coords.longitude,
+                    },
+                    zoom: 14,
+                  }}
+                  markers={[
+                    {
+                      id: "user",
+                      coordinates: {
+                        latitude: userLocation.coords.latitude,
+                        longitude: userLocation.coords.longitude,
+                      },
+                      title: "Twoja Lokalizacja",
+                    },
+                  ]}
+                />
+              ))}
 
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Live Map */}
-        <View style={styles.mapContainer}>
-          {userLocation && (Platform.OS === "ios" ? (
-            <AppleMaps.View
-              style={styles.map}
-              cameraPosition={{
-                coordinates: {
-                  latitude: userLocation.coords.latitude,
-                  longitude: userLocation.coords.longitude,
-                },
-                zoom: 14,
-              }}
-              markers={[
-                {
-                  id: "user",
-                  coordinates: {
-                    latitude: userLocation.coords.latitude,
-                    longitude: userLocation.coords.longitude,
-                  },
-                  title: "Twoja Lokalizacja",
-                },
+            {/* Close Fullscreen Button */}
+            <TouchableOpacity
+              style={[
+                styles.fullscreenExitButton,
+                { backgroundColor: colors.card },
               ]}
-            />
-          ) : (
-            <GoogleMaps.View
-              style={styles.map}
-              cameraPosition={{
-                coordinates: {
-                  latitude: userLocation.coords.latitude,
-                  longitude: userLocation.coords.longitude,
-                },
-                zoom: 14,
-              }}
-              markers={[
-                {
-                  id: "user",
-                  coordinates: {
-                    latitude: userLocation.coords.latitude,
-                    longitude: userLocation.coords.longitude,
-                  },
-                  title: "Twoja Lokalizacja",
-                },
-              ]}
-            />
-          ))}
-          
-          {/* Fullscreen Toggle Button */}
-          <TouchableOpacity
-            style={[styles.fullscreenButton, { backgroundColor: colors.card }]}
-            onPress={() => setIsMapFullscreen(true)}
-          >
-            <MaterialIcons
-              name="fullscreen"
-              size={20}
-              color={colors.text}
-            />
-            <ThemedText style={[styles.fullscreenButtonText, { color: colors.text }]}>
-              Zobacz Pełny Ekran
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-
-        {/* Next Stop Card */}
-        <View style={[styles.nextStopCard, { backgroundColor: colors.card }]}>
-          <View style={styles.nextStopHeader}>
-            <MaterialIcons
-              name="my-location"
-              size={24}
-              color={colors.primary}
-            />
-            <ThemedText style={styles.nextStopTitle}>Następny Przystanek</ThemedText>
+              onPress={() => setIsMapFullscreen(false)}
+            >
+              <MaterialIcons
+                name="fullscreen-exit"
+                size={20}
+                color={colors.text}
+              />
+              <ThemedText
+                style={[styles.fullscreenButtonText, { color: colors.text }]}
+              >
+                Wyjdź z Pełnego Ekranu
+              </ThemedText>
+            </TouchableOpacity>
           </View>
-          <View style={styles.nextStopInfo}>
-            <ThemedText type="defaultSemiBold" style={styles.nextStopName}>
-              Central Stration
-            </ThemedText>
-            <View style={styles.nextStopTime}>
-              <MaterialIcons name="access-time" size={16} color={colors.icon} />
-              <ThemedText style={styles.nextStopTimeText}>
-                Przyjazd o 15:15
+        </Modal>
+
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          {/* Live Map */}
+          <View style={styles.mapContainer}>
+            {userLocation &&
+              (Platform.OS === "ios" ? (
+                <AppleMaps.View
+                  style={styles.map}
+                  cameraPosition={{
+                    coordinates: {
+                      latitude: userLocation.coords.latitude,
+                      longitude: userLocation.coords.longitude,
+                    },
+                    zoom: 14,
+                  }}
+                  markers={[
+                    {
+                      id: "user",
+                      coordinates: {
+                        latitude: userLocation.coords.latitude,
+                        longitude: userLocation.coords.longitude,
+                      },
+                      title: "Your Location",
+                    },
+                  ]}
+                  polylines={
+                    route.length > 0
+                      ? [
+                          {
+                            id: "route",
+                            coordinates: route, // [{ latitude, longitude }, ...]
+                            color: "blue",
+                            width: 4,
+                          },
+                        ]
+                      : []
+                  }
+                />
+              ) : (
+                <GoogleMaps.View
+                  style={styles.map}
+                  cameraPosition={{
+                    coordinates: {
+                      latitude: userLocation.coords.latitude,
+                      longitude: userLocation.coords.longitude,
+                    },
+                    zoom: 14,
+                  }}
+                  markers={[
+                    {
+                      id: "user",
+                      coordinates: {
+                        latitude: userLocation.coords.latitude,
+                        longitude: userLocation.coords.longitude,
+                      },
+                      title: "Your Location",
+                    },
+                  ]}
+                  polylines={
+                    route.length > 0
+                      ? [
+                          {
+                            id: "route",
+                            coordinates: route,
+                            color: "blue",
+                            width: 4,
+                          },
+                        ]
+                      : []
+                  }
+                />
+              ))}
+
+            {/* Fullscreen Toggle Button */}
+            <TouchableOpacity
+              style={[
+                styles.fullscreenButton,
+                { backgroundColor: colors.card },
+              ]}
+              onPress={() => setIsMapFullscreen(true)}
+            >
+              <MaterialIcons name="fullscreen" size={20} color={colors.text} />
+              <ThemedText
+                style={[styles.fullscreenButtonText, { color: colors.text }]}
+              >
+                Zobacz Pełny Ekran
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+
+          {/* Next Stop Card */}
+          <View style={[styles.nextStopCard, { backgroundColor: colors.card }]}>
+            <View style={styles.nextStopHeader}>
+              <MaterialIcons
+                name="my-location"
+                size={24}
+                color={colors.primary}
+              />
+              <ThemedText style={styles.nextStopTitle}>
+                Następny Przystanek
               </ThemedText>
             </View>
-          </View>
-          <View
-            style={[
-              styles.nextStopProgress,
-              { backgroundColor: colors.border },
-            ]}
-          >
+            <View style={styles.nextStopInfo}>
+              <ThemedText type="defaultSemiBold" style={styles.nextStopName}>
+                Central Stration
+              </ThemedText>
+              <View style={styles.nextStopTime}>
+                <MaterialIcons
+                  name="access-time"
+                  size={16}
+                  color={colors.icon}
+                />
+                <ThemedText style={styles.nextStopTimeText}>
+                  Przyjazd o 15:15
+                </ThemedText>
+              </View>
+            </View>
             <View
               style={[
-                styles.nextStopProgressFill,
-                { backgroundColor: colors.primary, width: "65%" },
+                styles.nextStopProgress,
+                { backgroundColor: colors.border },
               ]}
-            />
-          </View>
-        </View>
-
-        {/* All Stops */}
-        <View style={[styles.stopsCard, { backgroundColor: colors.card }]}>
-          <View style={styles.stopsHeader}>
-            <ThemedText type="defaultSemiBold" style={styles.stopsTitle}>
-              Wszystkie Przystanki
-            </ThemedText>
-            <ThemedText style={[styles.stopsCount, { color: colors.icon }]}>
-              {currentStop + 1} z {stops.length}
-            </ThemedText>
+            >
+              <View
+                style={[
+                  styles.nextStopProgressFill,
+                  { backgroundColor: colors.primary, width: "65%" },
+                ]}
+              />
+            </View>
           </View>
 
-          <View style={styles.stopsList}>
-            {stops.map((stop, index) => (
-              <View key={stop.id} style={styles.stopItem}>
-                {/* Connection Line */}
-                {index > 0 && (
-                  <View
-                    style={[
-                      styles.connectionLine,
-                      {
-                        backgroundColor:
-                          stop.status === "upcoming"
-                            ? colors.border
-                            : colors.primary,
-                      },
-                    ]}
-                  />
-                )}
+          {/* All Stops */}
+          <View style={[styles.stopsCard, { backgroundColor: colors.card }]}>
+            <View style={styles.stopsHeader}>
+              <ThemedText type="defaultSemiBold" style={styles.stopsTitle}>
+                Wszystkie Przystanki
+              </ThemedText>
+              <ThemedText style={[styles.stopsCount, { color: colors.icon }]}>
+                {currentStop + 1} z {stops.length}
+              </ThemedText>
+            </View>
 
-                {/* Stop Content */}
-                <View style={styles.stopContent}>
-                  <View
-                    style={[
-                      styles.stopIconContainer,
-                      { backgroundColor: getStopColor(stop.status) },
-                    ]}
-                  >
-                    {stop.status === "completed" ? (
-                      <MaterialIcons name="check" size={16} color="#fff" />
-                    ) : stop.status === "current" ? (
-                      <MaterialIcons name="my-location" size={16} color="#fff" />
-                    ) : (
-                      <View
-                        style={[
-                          styles.stopDot,
-                          { backgroundColor: colors.background },
-                        ]}
-                      />
-                    )}
-                  </View>
-
-                  <View style={styles.stopDetails}>
-                    <ThemedText
-                      type={
-                        stop.status === "current"
-                          ? "defaultSemiBold"
-                          : "default"
-                      }
-                      style={[
-                        styles.stopName,
-                        stop.status === "upcoming" && { opacity: 0.6 },
-                      ]}
-                    >
-                      {stop.name}
-                    </ThemedText>
-                    <ThemedText
-                      style={[
-                        styles.stopTime,
-                        { color: colors.icon },
-                        stop.status === "upcoming" && { opacity: 0.6 },
-                      ]}
-                    >
-                      {stop.time}
-                      {stop.delay && stop.delay > 0 && (
-                        <ThemedText style={{ color: colors.danger }}>
-                          {" "}
-                          (+{stop.delay}m)
-                        </ThemedText>
-                      )}
-                    </ThemedText>
-                  </View>
-
-                  {stop.status === "current" && (
+            <View style={styles.stopsList}>
+              {stops.map((stop, index) => (
+                <View key={stop.id} style={styles.stopItem}>
+                  {/* Connection Line */}
+                  {index > 0 && (
                     <View
                       style={[
-                        styles.currentBadge,
-                        { backgroundColor: colors.primary },
+                        styles.connectionLine,
+                        {
+                          backgroundColor:
+                            stop.status === "upcoming"
+                              ? colors.border
+                              : colors.primary,
+                        },
+                      ]}
+                    />
+                  )}
+
+                  {/* Stop Content */}
+                  <View style={styles.stopContent}>
+                    <View
+                      style={[
+                        styles.stopIconContainer,
+                        { backgroundColor: getStopColor(stop.status) },
                       ]}
                     >
-                      <ThemedText style={styles.currentBadgeText}>
-                        Current
+                      {stop.status === "completed" ? (
+                        <MaterialIcons name="check" size={16} color="#fff" />
+                      ) : stop.status === "current" ? (
+                        <MaterialIcons
+                          name="my-location"
+                          size={16}
+                          color="#fff"
+                        />
+                      ) : (
+                        <View
+                          style={[
+                            styles.stopDot,
+                            { backgroundColor: colors.background },
+                          ]}
+                        />
+                      )}
+                    </View>
+
+                    <View style={styles.stopDetails}>
+                      <ThemedText
+                        type={
+                          stop.status === "current"
+                            ? "defaultSemiBold"
+                            : "default"
+                        }
+                        style={[
+                          styles.stopName,
+                          stop.status === "upcoming" && { opacity: 0.6 },
+                        ]}
+                      >
+                        {stop.name}
+                      </ThemedText>
+                      <ThemedText
+                        style={[
+                          styles.stopTime,
+                          { color: colors.icon },
+                          stop.status === "upcoming" && { opacity: 0.6 },
+                        ]}
+                      >
+                        {stop.time}
+                        {stop.delay && stop.delay > 0 && (
+                          <ThemedText style={{ color: colors.danger }}>
+                            {" "}
+                            (+{stop.delay}m)
+                          </ThemedText>
+                        )}
                       </ThemedText>
                     </View>
-                  )}
+
+                    {stop.status === "current" && (
+                      <View
+                        style={[
+                          styles.currentBadge,
+                          { backgroundColor: colors.primary },
+                        ]}
+                      >
+                        <ThemedText style={styles.currentBadgeText}>
+                          Current
+                        </ThemedText>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))}
+              ))}
+            </View>
           </View>
-        </View>
 
-        {/* Quick Actions */}
-        <View style={styles.actionsContainer}>
-          <TouchableOpacity
-            style={[
-              styles.actionButton,
-              { backgroundColor: colors.secondary },
-            ]}
-          >
-            <MaterialIcons name="notifications" size={24} color="#fff" />
-            <ThemedText style={styles.actionButtonText}>
-              Powiadom o Przyjeździe
-            </ThemedText>
-          </TouchableOpacity>
+          {/* Quick Actions */}
+          <View style={styles.actionsContainer}>
+            <TouchableOpacity
+              style={[
+                styles.actionButton,
+                { backgroundColor: colors.secondary },
+              ]}
+            >
+              <MaterialIcons name="notifications" size={24} color="#fff" />
+              <ThemedText style={styles.actionButtonText}>
+                Powiadom o Przyjeździe
+              </ThemedText>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.warning }]}
-          >
-            <MaterialIcons name="report-problem" size={24} color="#fff" />
-            <ThemedText style={styles.actionButtonText}>
-              Zgłoś Problem
-            </ThemedText>
-          </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.warning }]}
+            >
+              <MaterialIcons name="report-problem" size={24} color="#fff" />
+              <ThemedText style={styles.actionButtonText}>
+                Zgłoś Problem
+              </ThemedText>
+            </TouchableOpacity>
 
-          <TouchableOpacity
-            style={[styles.actionButton, { backgroundColor: colors.accent }]}
-          >
-            <MaterialIcons name="share" size={24} color="#fff" />
-            <ThemedText style={styles.actionButtonText}>
-              Udostępnij Podróż
-            </ThemedText>
-          </TouchableOpacity>
-        </View>
-      </ScrollView>
-    </ThemedView>
+            <TouchableOpacity
+              style={[styles.actionButton, { backgroundColor: colors.accent }]}
+            >
+              <MaterialIcons name="share" size={24} color="#fff" />
+              <ThemedText style={styles.actionButtonText}>
+                Udostępnij Podróż
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        </ScrollView>
+      </ThemedView>
     </ImageBackground>
   );
 }
