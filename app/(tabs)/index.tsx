@@ -10,6 +10,8 @@ import React, { useState } from "react";
 import {
   Image,
   ImageBackground,
+  SafeAreaView,
+  StatusBar,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -56,16 +58,18 @@ export default function HomeScreen() {
   };
 
   return (
-    <ImageBackground
-      source={require("@/assets/journeytlo.png")}
-      style={styles.container}
-      resizeMode="cover"
-    >
-      <ThemedView
-        style={[styles.container, { backgroundColor: "transparent" }]}
+    <SafeAreaView style={styles.safeArea}>
+      <StatusBar barStyle="light-content" />
+      <ImageBackground
+        source={require("@/assets/journeytlo.png")}
+        style={[styles.container, { backgroundColor: colors.background }]}
+        resizeMode="cover"
       >
-        {/* Compact Header with Logo */}
-        <View style={styles.header}>
+        <ThemedView
+          style={[styles.container, { backgroundColor: "transparent" }]}
+        >
+          {/* Compact Header with Logo */}
+          <View style={styles.header}>
           <View style={styles.logoContainer}>
             <View style={styles.logoCircle}>
               <Image 
@@ -75,9 +79,9 @@ export default function HomeScreen() {
               />
             </View>
             <View style={styles.logoText}>
-              <ThemedText style={styles.companyName}>JourneyRadar</ThemedText>
+              <ThemedText style={styles.companyName}>Lajkonik</ThemedText>
               <ThemedText style={styles.companyTagline}>
-                Twój Zaufany Partner Transportu
+                Małopolska Innowacyjna
               </ThemedText>
             </View>
           </View>
@@ -340,23 +344,28 @@ export default function HomeScreen() {
         </View>
       </ThemedView>
     </ImageBackground>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+    backgroundColor: "rgb(69, 101, 173)",
+  },
   container: {
     flex: 1,
   },
-  header: {
-    paddingTop: 60,
+    header: {
     paddingHorizontal: 12,
-    paddingBottom: 20,
+    paddingVertical: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 3 }, // height > 0 = shadow only below
     shadowOpacity: 0.15,
     shadowRadius: 6,
     elevation: 5,
-    backgroundColor: "rgb(69, 101, 173)"
+    backgroundColor: "rgb(69, 101, 173)",
+    justifyContent: "center",
   },
   logoContainer: {
     flexDirection: "row",
@@ -377,18 +386,20 @@ const styles = StyleSheet.create({
   },
   logoText: {
     flex: 1,
+    justifyContent: "center",
   },
   companyName: {
     fontSize: 24,
     fontFamily: "Poppins-Bold",
     color: "#fff",
-    marginBottom: 2,
+    lineHeight: 28,
   },
   companyTagline: {
-    fontSize: 12,
-    fontFamily: "Poppins-Regular",
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
     color: "#fff",
     opacity: 0.9,
+    lineHeight: 16,
   },
   content: {
     flex: 1,
