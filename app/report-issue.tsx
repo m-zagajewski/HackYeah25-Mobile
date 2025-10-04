@@ -1,6 +1,7 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
+import { useJourney } from "@/contexts/JourneyContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
@@ -24,10 +25,20 @@ interface IssueType {
   color: string;
 }
 
+type DelayReason = "TRAFFIC_JAM" | "ROAD_ACCIDENT" | "SEVERE_WEATHER" | "VEHICLE_ISSUE";
+
+interface DelayReportPayload {
+  vehicle_uuid: string;
+  current_stop_uuid: string;
+  next_stop_uuid: string;
+  delay_reason: DelayReason;
+}
+
 export default function ReportIssueScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
+  const { currentJourney } = useJourney();
 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -65,10 +76,55 @@ export default function ReportIssueScreen() {
       return;
     }
 
+    // Validate journey data
+    if (!currentJourney) {
+      Alert.alert("Brak Aktywnej Podróży", "Nie można zgłosić problemu bez aktywnej podróży");
+      return;
+    }
+
+    if (!currentJourney.vehicleUuid || !currentJourney.stops || currentJourney.currentStopIndex === undefined) {
+      Alert.alert("Błąd", "Brak wymaganych danych o podróży");
+      return;
+    }
+
+    const currentStopData = currentJourney.stops[currentJourney.currentStopIndex];
+    const nextStopData = currentJourney.stops[currentJourney.currentStopIndex + 1];
+
+    if (!currentStopData || !nextStopData) {
+      Alert.alert("Błąd", "Nie można określić przystanków");
+      return;
+    }
+
     setIsSubmitting(true);
 
-    // Simulate API call
-    setTimeout(() => {
+    try {
+      const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://your-api-domain.com';
+      
+      const payload: DelayReportPayload = {
+        vehicle_uuid: currentJourney.vehicleUuid,
+        current_stop_uuid: currentStopData.uuid,
+        next_stop_uuid: nextStopData.uuid,
+        delay_reason: selectedIssue as DelayReason,
+      };
+
+      console.log('Sending delay report:', payload);
+
+      const response = await fetch(`${API_BASE_URL}/api/v1/delay/report`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Delay report response:', data);
+
       setIsSubmitting(false);
       Alert.alert(
         "Zgłoszenie Wysłane! ✅",
@@ -80,7 +136,19 @@ export default function ReportIssueScreen() {
           },
         ]
       );
-    }, 1000);
+    } catch (error) {
+      console.error('Error submitting delay report:', error);
+      setIsSubmitting(false);
+      Alert.alert(
+        "Błąd",
+        `Nie udało się wysłać zgłoszenia: ${error instanceof Error ? error.message : 'Nieznany błąd'}`,
+        [
+          {
+            text: "OK",
+          },
+        ]
+      );
+    }
   };
 
   const selectedIssueType = issueTypes.find((type) => type.id === selectedIssue);
@@ -120,12 +188,14 @@ export default function ReportIssueScreen() {
               </View>
 
               {/* Current Journey Info */}
-              <View style={[styles.journeyBadge, { backgroundColor: colors.background }]}>
-                <MaterialIcons name="directions-bus" size={18} color={colors.primary} />
-                <ThemedText style={styles.journeyText}>
-                  Linia 42 • Tramwaj 4201
-                </ThemedText>
-              </View>
+              {currentJourney && (
+                <View style={[styles.journeyBadge, { backgroundColor: colors.background }]}>
+                  <MaterialIcons name="directions-bus" size={18} color={colors.primary} />
+                  <ThemedText style={styles.journeyText}>
+                    Linia {currentJourney.routeNumber} • {currentJourney.currentStop} → {currentJourney.nextStop}
+                  </ThemedText>
+                </View>
+              )}
             </View>
 
             {/* Quick Issue Selection */}
