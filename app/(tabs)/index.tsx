@@ -84,7 +84,7 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.content}>
-          <View style={styles.searchSection}>
+          <View style={[styles.searchSection, , { backgroundColor: colors.card }]}>
             <View style={styles.searchInputWrapper}>
               {/* Connection Line on Left */}
               <View style={styles.connectionLine}>
@@ -405,7 +405,6 @@ const styles = StyleSheet.create({
     elevation: 2,
     paddingHorizontal: 12,
     paddingVertical: 6,
-    backgroundColor: "#fff",
   },
   searchInputWrapper: {
     flexDirection: "row",

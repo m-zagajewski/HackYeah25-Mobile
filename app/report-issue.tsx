@@ -73,8 +73,7 @@ export default function ReportIssueScreen() {
   const handleSubmit = async () => {
     if (!selectedIssue) {
       Alert.alert("Wybierz Typ Problemu", "Proszę wybrać typ problemu do zgłoszenia");
-      return;
-    }
+      return;    }
 
     // Validate journey data
     if (!currentJourney) {
