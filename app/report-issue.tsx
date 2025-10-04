@@ -6,15 +6,15 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-  StyleSheet,
-  TouchableOpacity,
-  View,
-  TextInput,
-  ScrollView,
-  ImageBackground,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
+    Alert,
+    ImageBackground,
+    KeyboardAvoidingView,
+    Platform,
+    ScrollView,
+    StyleSheet,
+    TextInput,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 interface IssueType {
@@ -35,58 +35,33 @@ export default function ReportIssueScreen() {
 
   const issueTypes: IssueType[] = [
     {
-      id: "delay",
-      title: "Delay",
+      id: "TRAFFIC_JAM",
+      title: "Korki",
       icon: "schedule",
       color: colors.warning,
     },
     {
-      id: "crowded",
-      title: "Overcrowded",
-      icon: "people",
-      color: colors.danger,
-    },
-    {
-      id: "dirty",
-      title: "Cleanliness",
-      icon: "cleaning-services",
-      color: colors.accent,
-    },
-    {
-      id: "broken",
-      title: "Equipment Issue",
+      id: "VEHICLE_ISSUE",
+      title: "Usterka",
       icon: "build",
       color: colors.secondary,
     },
     {
-      id: "driver",
-      title: "Driver Behavior",
-      icon: "person",
-      color: colors.info,
-    },
-    {
-      id: "safety",
-      title: "Safety Concern",
-      icon: "warning",
+      id: "SEVERE_WEATHER",
+      title: "Zła Pogoda",
+      icon: "cloud",
       color: colors.danger,
     },
     {
-      id: "route",
-      title: "Route Problem",
+      id: "ROAD_ACCIDENT",
+      title: "Wypadek",
       icon: "map",
       color: colors.primary,
     },
-    {
-      id: "other",
-      title: "Other",
-      icon: "more-horiz",
-      color: colors.icon,
-    },
   ];
-
   const handleSubmit = async () => {
     if (!selectedIssue) {
-      Alert.alert("Select Issue Type", "Please select an issue type to report");
+      Alert.alert("Wybierz Typ Problemu", "Proszę wybrać typ problemu do zgłoszenia");
       return;
     }
 
@@ -96,8 +71,8 @@ export default function ReportIssueScreen() {
     setTimeout(() => {
       setIsSubmitting(false);
       Alert.alert(
-        "Report Submitted! ✅",
-        "Thank you for your feedback. We'll address this issue as soon as possible.",
+        "Zgłoszenie Wysłane! ✅",
+        "Dziękujemy za opinię. Zajmiemy się tym problemem tak szybko, jak to możliwe.",
         [
           {
             text: "OK",
@@ -136,10 +111,10 @@ export default function ReportIssueScreen() {
                 />
                 <View style={styles.infoText}>
                   <ThemedText type="defaultSemiBold" style={styles.infoTitle}>
-                    Report an Issue
+                    Zgłoś Problem
                   </ThemedText>
                   <ThemedText style={[styles.infoSubtitle, { color: colors.icon }]}>
-                    Quick report • Takes less than 30 seconds
+                    Szybkie zgłoszenie • Zajmie mniej niż 30 sekund
                   </ThemedText>
                 </View>
               </View>
@@ -148,7 +123,7 @@ export default function ReportIssueScreen() {
               <View style={[styles.journeyBadge, { backgroundColor: colors.background }]}>
                 <MaterialIcons name="directions-bus" size={18} color={colors.primary} />
                 <ThemedText style={styles.journeyText}>
-                  Route 42 • Tram 4201
+                  Linia 42 • Tramwaj 4201
                 </ThemedText>
               </View>
             </View>
@@ -156,10 +131,10 @@ export default function ReportIssueScreen() {
             {/* Quick Issue Selection */}
             <View style={[styles.section, { backgroundColor: colors.card }]}>
               <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                What's the issue?
+                Jaki jest problem?
               </ThemedText>
               <ThemedText style={[styles.sectionSubtitle, { color: colors.icon }]}>
-                Tap to select
+                Dotknij, aby wybrać
               </ThemedText>
 
               <View style={styles.issueGrid}>
@@ -217,7 +192,7 @@ export default function ReportIssueScreen() {
             {selectedIssue && (
               <View style={[styles.section, { backgroundColor: colors.card }]}>
                 <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-                  Additional Details (Optional)
+                  Dodatkowe Szczegóły (Opcjonalne)
                 </ThemedText>
                 <TextInput
                   style={[
@@ -228,7 +203,7 @@ export default function ReportIssueScreen() {
                       color: colors.text,
                     },
                   ]}
-                  placeholder="Add more details if needed..."
+                  placeholder="Dodaj więcej szczegółów, jeśli potrzebujesz..."
                   placeholderTextColor={colors.icon}
                   multiline
                   numberOfLines={4}
@@ -237,7 +212,7 @@ export default function ReportIssueScreen() {
                   maxLength={500}
                 />
                 <ThemedText style={[styles.charCount, { color: colors.icon }]}>
-                  {description.length}/500 characters
+                  {description.length}/500 znaków
                 </ThemedText>
               </View>
             )}
@@ -258,14 +233,14 @@ export default function ReportIssueScreen() {
                     <>
                       <MaterialIcons name="hourglass-empty" size={24} color="#fff" />
                       <ThemedText style={styles.submitButtonText}>
-                        Submitting...
+                        Wysyłanie...
                       </ThemedText>
                     </>
                   ) : (
                     <>
                       <MaterialIcons name="send" size={24} color="#fff" />
                       <ThemedText style={styles.submitButtonText}>
-                        Submit Report
+                        Wyślij Zgłoszenie
                       </ThemedText>
                     </>
                   )}
@@ -280,7 +255,7 @@ export default function ReportIssueScreen() {
                   disabled={isSubmitting}
                 >
                   <ThemedText style={[styles.cancelButtonText, { color: colors.text }]}>
-                    Cancel
+                    Anuluj
                   </ThemedText>
                 </TouchableOpacity>
               </View>
@@ -290,9 +265,9 @@ export default function ReportIssueScreen() {
             <View style={[styles.tipsCard, { backgroundColor: colors.card }]}>
               <MaterialIcons name="lightbulb" size={20} color={colors.accent} />
               <View style={styles.tipsContent}>
-                <ThemedText style={styles.tipsTitle}>Quick Tip</ThemedText>
+                <ThemedText style={styles.tipsTitle}>Szybka Wskazówka</ThemedText>
                 <ThemedText style={[styles.tipsText, { color: colors.icon }]}>
-                  Your reports help us improve service quality for everyone
+                  Twoje zgłoszenia pomagają nam poprawiać jakość usług dla wszystkich
                 </ThemedText>
               </View>
             </View>

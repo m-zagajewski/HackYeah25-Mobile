@@ -10,6 +10,7 @@ import React, { useEffect, useState } from "react";
 import {
   Animated,
   Dimensions,
+  ImageBackground,
   Modal,
   Platform,
   ScrollView,
@@ -128,7 +129,12 @@ export default function LiveTrackScreen() {
   };
 
   return (
-    <ThemedView style={styles.container}>
+    <ImageBackground
+      source={require("@/assets/journeytlo.png")}
+      style={styles.container}
+      resizeMode="cover"
+    >
+      <ThemedView style={[styles.container, { backgroundColor: "transparent" }]}>
       {/* Fullscreen Map Modal */}
       <Modal
         visible={isMapFullscreen}
@@ -153,7 +159,7 @@ export default function LiveTrackScreen() {
                     latitude: userLocation.coords.latitude,
                     longitude: userLocation.coords.longitude,
                   },
-                  title: "Your Location",
+                  title: "Twoja Lokalizacja",
                 },
               ]}
             />
@@ -174,7 +180,7 @@ export default function LiveTrackScreen() {
                     latitude: userLocation.coords.latitude,
                     longitude: userLocation.coords.longitude,
                   },
-                  title: "Your Location",
+                  title: "Twoja Lokalizacja",
                 },
               ]}
             />
@@ -191,7 +197,7 @@ export default function LiveTrackScreen() {
               color={colors.text}
             />
             <ThemedText style={[styles.fullscreenButtonText, { color: colors.text }]}>
-              Exit Fullscreen
+              Wyjdź z Pełnego Ekranu
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -217,7 +223,7 @@ export default function LiveTrackScreen() {
                     latitude: userLocation.coords.latitude,
                     longitude: userLocation.coords.longitude,
                   },
-                  title: "Your Location",
+                  title: "Twoja Lokalizacja",
                 },
               ]}
             />
@@ -238,7 +244,7 @@ export default function LiveTrackScreen() {
                     latitude: userLocation.coords.latitude,
                     longitude: userLocation.coords.longitude,
                   },
-                  title: "Your Location",
+                  title: "Twoja Lokalizacja",
                 },
               ]}
             />
@@ -255,7 +261,7 @@ export default function LiveTrackScreen() {
               color={colors.text}
             />
             <ThemedText style={[styles.fullscreenButtonText, { color: colors.text }]}>
-              View Fullscreen
+              Zobacz Pełny Ekran
             </ThemedText>
           </TouchableOpacity>
         </View>
@@ -268,7 +274,7 @@ export default function LiveTrackScreen() {
               size={24}
               color={colors.primary}
             />
-            <ThemedText style={styles.nextStopTitle}>Next Stop</ThemedText>
+            <ThemedText style={styles.nextStopTitle}>Następny Przystanek</ThemedText>
           </View>
           <View style={styles.nextStopInfo}>
             <ThemedText type="defaultSemiBold" style={styles.nextStopName}>
@@ -277,7 +283,7 @@ export default function LiveTrackScreen() {
             <View style={styles.nextStopTime}>
               <MaterialIcons name="access-time" size={16} color={colors.icon} />
               <ThemedText style={styles.nextStopTimeText}>
-                Arriving at 15.15
+                Przyjazd o 15:15
               </ThemedText>
             </View>
           </View>
@@ -300,10 +306,10 @@ export default function LiveTrackScreen() {
         <View style={[styles.stopsCard, { backgroundColor: colors.card }]}>
           <View style={styles.stopsHeader}>
             <ThemedText type="defaultSemiBold" style={styles.stopsTitle}>
-              All Stops
+              Wszystkie Przystanki
             </ThemedText>
             <ThemedText style={[styles.stopsCount, { color: colors.icon }]}>
-              {currentStop + 1} of {stops.length}
+              {currentStop + 1} z {stops.length}
             </ThemedText>
           </View>
 
@@ -406,7 +412,7 @@ export default function LiveTrackScreen() {
           >
             <MaterialIcons name="notifications" size={24} color="#fff" />
             <ThemedText style={styles.actionButtonText}>
-              Notify on Arrival
+              Powiadom o Przyjeździe
             </ThemedText>
           </TouchableOpacity>
 
@@ -415,7 +421,7 @@ export default function LiveTrackScreen() {
           >
             <MaterialIcons name="report-problem" size={24} color="#fff" />
             <ThemedText style={styles.actionButtonText}>
-              Report Issue
+              Zgłoś Problem
             </ThemedText>
           </TouchableOpacity>
 
@@ -424,12 +430,13 @@ export default function LiveTrackScreen() {
           >
             <MaterialIcons name="share" size={24} color="#fff" />
             <ThemedText style={styles.actionButtonText}>
-              Share Journey
+              Udostępnij Podróż
             </ThemedText>
           </TouchableOpacity>
         </View>
       </ScrollView>
     </ThemedView>
+    </ImageBackground>
   );
 }
 

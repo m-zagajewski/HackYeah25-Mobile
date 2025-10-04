@@ -67,11 +67,11 @@ export default function HomeScreen() {
   const getStatusText = (journey: Journey) => {
     switch (journey.status) {
       case "on-time":
-        return "On Time";
+        return "Na Czas";
       case "delayed":
-        return `Delayed ${journey.delayMinutes} min`;
+        return `Opóźnienie ${journey.delayMinutes} min`;
       case "cancelled":
-        return "Cancelled";
+        return "Odwołany";
       default:
         return "";
     }
@@ -99,7 +99,7 @@ export default function HomeScreen() {
             <View style={styles.logoText}>
               <ThemedText style={styles.companyName}>JourneyRadar</ThemedText>
               <ThemedText style={styles.companyTagline}>
-                Your Trusted Transport Partner
+                Twój Zaufany Partner Transportu
               </ThemedText>
             </View>
           </View>
@@ -133,7 +133,7 @@ export default function HomeScreen() {
                 <View style={styles.stackedInput}>
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
-                    placeholder="Current location"
+                    placeholder="Aktualna lokalizacja"
                     placeholderTextColor={colors.icon}
                     value={fromLocation}
                     onChangeText={setFromLocation}
@@ -143,7 +143,7 @@ export default function HomeScreen() {
                 <View style={styles.stackedInput}>
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
-                    placeholder="To"
+                    placeholder="Dokąd"
                     placeholderTextColor={colors.icon}
                     value={toLocation}
                     onChangeText={setToLocation}
@@ -170,7 +170,7 @@ export default function HomeScreen() {
                       type="defaultSemiBold"
                       style={styles.journeyTitle}
                     >
-                      Current Journey
+                      Aktualna Podróż
                     </ThemedText>
                   </View>
                   <View
@@ -207,7 +207,7 @@ export default function HomeScreen() {
                     <View style={styles.timeRow}>
                       <View style={styles.timeItem}>
                         <ThemedText style={styles.timeLabel}>
-                          Departure
+                          Odjazd
                         </ThemedText>
                         <ThemedText
                           type="defaultSemiBold"
@@ -223,7 +223,7 @@ export default function HomeScreen() {
                       />
                       <View style={styles.timeItem}>
                         <ThemedText style={styles.timeLabel}>
-                          Arrival
+                          Przyjazd
                         </ThemedText>
                         <ThemedText
                           type="defaultSemiBold"
@@ -248,7 +248,7 @@ export default function HomeScreen() {
                       />
                       <View>
                         <ThemedText style={styles.stopLabel}>
-                          Current Stop
+                          Obecny Przystanek
                         </ThemedText>
                         <ThemedText
                           type="defaultSemiBold"
@@ -268,7 +268,7 @@ export default function HomeScreen() {
                       />
                       <View>
                         <ThemedText style={styles.stopLabel}>
-                          Next Stop
+                          Następny Przystanek
                         </ThemedText>
                         <ThemedText style={styles.stopName}>
                           {nextJourney.nextStop}
@@ -309,7 +309,7 @@ export default function HomeScreen() {
                       color="#fff"
                     />
                     <ThemedText style={styles.actionBtnText}>
-                      Live Track
+                      Śledzenie Na Żywo
                     </ThemedText>
                   </TouchableOpacity>
 
@@ -328,7 +328,7 @@ export default function HomeScreen() {
                       color="#fff"
                     />
                     <ThemedText style={styles.actionBtnText}>
-                      Report Issue
+                      Zgłoś Problem
                     </ThemedText>
                   </TouchableOpacity>
                 </View>
@@ -339,10 +339,10 @@ export default function HomeScreen() {
               >
                 <IconSymbol size={56} name="ticket" color={colors.icon} />
                 <ThemedText style={styles.emptyTitle}>
-                  No Active Journey
+                  Brak Aktywnej Podróży
                 </ThemedText>
                 <ThemedText style={styles.emptySubtitle}>
-                  Search for connections or buy a ticket to start tracking
+                  Wyszukaj połączenia lub kup bilet, aby rozpocząć śledzenie
                 </ThemedText>
                 <TouchableOpacity
                   style={[
@@ -353,7 +353,7 @@ export default function HomeScreen() {
                 >
                   <IconSymbol size={20} name="ticket.fill" color="#fff" />
                   <ThemedText style={styles.buyTicketBtnText}>
-                    Buy Ticket
+                    Kup Bilet
                   </ThemedText>
                 </TouchableOpacity>
               </View>
