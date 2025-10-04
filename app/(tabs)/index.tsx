@@ -56,6 +56,35 @@ export default function HomeScreen() {
     }
   };
 
+  const calculateJourneyProgress = (journey: Journey): number => {
+    if (!journey.departure || !journey.arrival) return 0;
+    
+    // Parse time strings (HH:MM format)
+    const parseTime = (timeStr: string): Date => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+    
+    const now = new Date();
+    const departureTime = parseTime(journey.departure);
+    const arrivalTime = parseTime(journey.arrival);
+    
+    // Handle case where arrival is next day (after midnight)
+    if (arrivalTime < departureTime) {
+      arrivalTime.setDate(arrivalTime.getDate() + 1);
+    }
+    
+    // Calculate progress
+    const totalDuration = arrivalTime.getTime() - departureTime.getTime();
+    const elapsed = now.getTime() - departureTime.getTime();
+    
+    const progress = Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
+    
+    return progress;
+  };
+
   return (
     <SafeAreaView style={styles.safeArea}>
       <StatusBar barStyle="light-content" />
@@ -263,7 +292,10 @@ export default function HomeScreen() {
                     <View
                       style={[
                         styles.progressFill,
-                        { backgroundColor: colors.primary, width: "45%" },
+                        { 
+                          backgroundColor: colors.primary, 
+                          width: `${calculateJourneyProgress(currentJourney)}%` 
+                        },
                       ]}
                     />
                   </View>
