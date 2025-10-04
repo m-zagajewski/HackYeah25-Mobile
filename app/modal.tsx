@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
-import { Journey, useJourney } from '@/contexts/JourneyContext';
+import { Journey, RouteSegment, useJourney } from '@/contexts/JourneyContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
@@ -10,6 +10,9 @@ import {
   ActivityIndicator,
   Alert,
   Keyboard,
+  Modal,
+  Platform,
+  ScrollView,
   StyleSheet,
   TextInput,
   TouchableOpacity,
@@ -125,31 +128,93 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
   const firstSegment = allSegments[0];
   const lastSegment = allSegments[allSegments.length - 1];
   
+  // Group consecutive segments of the same type
+  const groupedSegments: RouteSegment[] = [];
+  let currentGroup: ApiSegment[] = [];
+  let currentType: 'walking' | 'transit' | null = null;
+  
+  allSegments.forEach((seg, index) => {
+    if (seg.type !== currentType) {
+      // Finish previous group
+      if (currentGroup.length > 0) {
+        const firstInGroup = currentGroup[0];
+        const lastInGroup = currentGroup[currentGroup.length - 1];
+        const totalDuration = currentGroup.reduce((sum, s) => sum + s.duration_minutes, 0);
+        const totalWalkingDistance = currentGroup.reduce((sum, s) => sum + (s.walking_distance_meters || 0), 0);
+        
+        groupedSegments.push({
+          segmentId: firstInGroup.segment_id,
+          type: firstInGroup.type,
+          fromStop: {
+            uuid: firstInGroup.from_stop.uuid,
+            name: firstInGroup.from_stop.name,
+            departureTime: formatTime(firstInGroup.departure_timestamp),
+          },
+          toStop: {
+            uuid: lastInGroup.to_stop.uuid,
+            name: lastInGroup.to_stop.name,
+            arrivalTime: formatTime(lastInGroup.arrival_timestamp),
+          },
+          departureTime: formatTime(firstInGroup.departure_timestamp),
+          arrivalTime: formatTime(lastInGroup.arrival_timestamp),
+          durationMinutes: totalDuration,
+          walkingDistanceMeters: totalWalkingDistance > 0 ? totalWalkingDistance : undefined,
+          vehicleInfo: firstInGroup.vehicle ? {
+            lineNumber: firstInGroup.vehicle.line_number,
+            destination: firstInGroup.vehicle.destination,
+            type: firstInGroup.vehicle.type,
+          } : undefined,
+        });
+      }
+      
+      // Start new group
+      currentGroup = [seg];
+      currentType = seg.type;
+    } else {
+      // Add to current group
+      currentGroup.push(seg);
+    }
+  });
+  
+  // Don't forget the last group
+  if (currentGroup.length > 0) {
+    const firstInGroup = currentGroup[0];
+    const lastInGroup = currentGroup[currentGroup.length - 1];
+    const totalDuration = currentGroup.reduce((sum, s) => sum + s.duration_minutes, 0);
+    const totalWalkingDistance = currentGroup.reduce((sum, s) => sum + (s.walking_distance_meters || 0), 0);
+    
+    groupedSegments.push({
+      segmentId: firstInGroup.segment_id,
+      type: firstInGroup.type,
+      fromStop: {
+        uuid: firstInGroup.from_stop.uuid,
+        name: firstInGroup.from_stop.name,
+        departureTime: formatTime(firstInGroup.departure_timestamp),
+      },
+      toStop: {
+        uuid: lastInGroup.to_stop.uuid,
+        name: lastInGroup.to_stop.name,
+        arrivalTime: formatTime(lastInGroup.arrival_timestamp),
+      },
+      departureTime: formatTime(firstInGroup.departure_timestamp),
+      arrivalTime: formatTime(lastInGroup.arrival_timestamp),
+      durationMinutes: totalDuration,
+      walkingDistanceMeters: totalWalkingDistance > 0 ? totalWalkingDistance : undefined,
+      vehicleInfo: firstInGroup.vehicle ? {
+        lineNumber: firstInGroup.vehicle.line_number,
+        destination: firstInGroup.vehicle.destination,
+        type: firstInGroup.vehicle.type,
+      } : undefined,
+    });
+  }
+  
+  const segments = groupedSegments;
+  console.log('✅ Grouped segments:', segments.length, 'segments');
+  console.log('📊 Grouped segment types:', segments.map(s => s.type));
+  
   if (isWalkingOnly) {
     // Walking-only route
     console.log('🚶 This is a walking-only route');
-    
-    // Build stops: from_stop of each segment + to_stop of last segment
-    const stops: Array<{uuid: string; name: string; departureTime?: string; arrivalTime?: string}> = [];
-    
-    allSegments.forEach((seg, index) => {
-      stops.push({
-        uuid: seg.from_stop.uuid,
-        name: seg.from_stop.name,
-        departureTime: formatTime(seg.departure_timestamp),
-        arrivalTime: undefined,
-      });
-    });
-    
-    // Add final destination (to_stop of last segment)
-    if (lastSegment) {
-      stops.push({
-        uuid: lastSegment.to_stop.uuid,
-        name: lastSegment.to_stop.name,
-        departureTime: undefined,
-        arrivalTime: formatTime(lastSegment.arrival_timestamp),
-      });
-    }
     
     const walkingDistanceKm = (apiResponse.summary.total_walking_distance_meters / 1000).toFixed(1);
     
@@ -162,7 +227,7 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
       status: 'on-time',
       currentStop: firstSegment?.from_stop.name,
       nextStop: allSegments[1]?.from_stop.name || firstSegment?.to_stop.name,
-      stops,
+      segments,
       currentStopIndex: 0,
     };
   }
@@ -189,28 +254,6 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
   const mainVehicleEntry = Array.from(vehicleCounts.values()).sort((a, b) => b.count - a.count)[0];
   const mainVehicle = mainVehicleEntry?.vehicle;
   
-  // Build stops: from_stop of each segment + to_stop of last segment
-  const stops: Array<{uuid: string; name: string; departureTime?: string; arrivalTime?: string}> = [];
-  
-  allSegments.forEach((seg, index) => {
-    stops.push({
-      uuid: seg.from_stop.uuid,
-      name: seg.from_stop.name,
-      departureTime: formatTime(seg.departure_timestamp),
-      arrivalTime: undefined,
-    });
-  });
-  
-  // Add final destination (to_stop of last segment)
-  if (lastSegment) {
-    stops.push({
-      uuid: lastSegment.to_stop.uuid,
-      name: lastSegment.to_stop.name,
-      departureTime: undefined,
-      arrivalTime: formatTime(lastSegment.arrival_timestamp),
-    });
-  }
-  
   const hasDelay = apiResponse.summary.total_delay_time_minutes > 0;
   const status: Journey['status'] = hasDelay ? 'delayed' : 'on-time';
   
@@ -225,15 +268,15 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
     currentStop: firstTransit?.from_stop.name || firstSegment?.from_stop.name,
     nextStop: (transitSegments[1]?.from_stop.name || transitSegments[0]?.to_stop.name) || (allSegments[1]?.from_stop.name || allSegments[0]?.to_stop.name),
     vehicleUuid: mainVehicle?.uuid,
-    stops,
+    segments,
     currentStopIndex: 0,
   };
 };
 
 // Fetch route from backend
-const fetchRoute = async (startLat: number, startLon: number, endLat: number, endLon: number): Promise<Journey | null> => {
+const fetchRoute = async (startLat: number, startLon: number, endLat: number, endLon: number, departureDate?: Date): Promise<Journey | null> => {
   try {
-    const now = new Date();
+    const now = departureDate || new Date();
     const departureTimestamp = Math.floor(now.getTime() / 1000); // Unix timestamp in seconds
     
     const url = `${API_BASE_URL}/plan_route?start_lat=${startLat}&start_lon=${startLon}&end_lat=${endLat}&end_lon=${endLon}&departure_timestamp=${departureTimestamp}`;
@@ -301,6 +344,12 @@ export default function RouteSelectionModal() {
   const [route, setRoute] = useState<Journey | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  
+  // Time picker state
+  const [departureTime, setDepartureTime] = useState(new Date());
+  const [showTimePicker, setShowTimePicker] = useState(false);
+  const [selectedHour, setSelectedHour] = useState(new Date().getHours());
+  const [selectedMinute, setSelectedMinute] = useState(new Date().getMinutes());
   
   // Suggestions state
   const [fromSuggestions, setFromSuggestions] = useState<LocationSuggestion[]>([]);
@@ -376,6 +425,7 @@ export default function RouteSelectionModal() {
     console.log('🔍 Starting search...');
     console.log('📍 From:', fromLocation, fromCoords);
     console.log('📍 To:', toLocation, toCoords);
+    console.log('⏰ Departure time:', departureTime.toLocaleString('pl-PL'));
     
     setIsLoading(true);
     setError(null);
@@ -387,7 +437,8 @@ export default function RouteSelectionModal() {
         fromCoords.lat,
         fromCoords.lon,
         toCoords.lat,
-        toCoords.lon
+        toCoords.lon,
+        departureTime
       );
       console.log('📥 Fetched route result:', fetchedRoute);
       
@@ -407,6 +458,34 @@ export default function RouteSelectionModal() {
       console.log('🏁 Search complete, isLoading set to false');
     }
   };
+
+  const handleTimeChange = (event: any, selectedDate?: Date) => {
+    if (Platform.OS === 'android') {
+      setShowTimePicker(false);
+    }
+    if (selectedDate) {
+      setDepartureTime(selectedDate);
+    }
+  };
+
+  const dismissTimePicker = () => {
+    setShowTimePicker(false);
+  };
+
+  const confirmTime = () => {
+    const newDate = new Date(departureTime);
+    newDate.setHours(selectedHour);
+    newDate.setMinutes(selectedMinute);
+    setDepartureTime(newDate);
+    setShowTimePicker(false);
+  };
+
+  const formatDisplayTime = (date: Date): string => {
+    return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const minutes = Array.from({ length: 60 }, (_, i) => i);
 
   const handleSelectRoute = () => {
     if (!route) return;
@@ -530,6 +609,118 @@ export default function RouteSelectionModal() {
             </View>
           )}
 
+          {/* Time Picker Button */}
+          <TouchableOpacity
+            style={[styles.timePickerButton, { backgroundColor: colors.card }]}
+            onPress={() => {
+              setSelectedHour(departureTime.getHours());
+              setSelectedMinute(departureTime.getMinutes());
+              setShowTimePicker(true);
+            }}
+          >
+            <MaterialIcons name="access-time" size={20} color={colors.icon} />
+            <View style={styles.timePickerContent}>
+              <ThemedText style={styles.timePickerLabel}>Odjazd o:</ThemedText>
+              <ThemedText style={styles.timePickerValue}>{formatDisplayTime(departureTime)}</ThemedText>
+            </View>
+            <MaterialIcons name="edit" size={18} color={colors.icon} />
+          </TouchableOpacity>
+
+          {/* Custom Time Picker Modal */}
+          <Modal
+            visible={showTimePicker}
+            transparent={true}
+            animationType="fade"
+            onRequestClose={dismissTimePicker}
+          >
+            <TouchableOpacity 
+              style={styles.modalOverlay}
+              activeOpacity={1}
+              onPress={dismissTimePicker}
+            >
+              <View style={[styles.timePickerModalContent, { backgroundColor: colors.card }]}>
+                <View style={styles.timePickerHeader}>
+                  <ThemedText type="defaultSemiBold" style={styles.timePickerTitle}>
+                    Wybierz godzinę odjazdu
+                  </ThemedText>
+                </View>
+                
+                <View style={styles.timePickerBody}>
+                  <View style={styles.timePickerScrolls}>
+                    {/* Hours Scroll */}
+                    <ScrollView 
+                      style={styles.timeScroll}
+                      showsVerticalScrollIndicator={false}
+                    >
+                      {hours.map((hour) => (
+                        <TouchableOpacity
+                          key={`hour-${hour}`}
+                          style={[
+                            styles.timeItem,
+                            selectedHour === hour && { backgroundColor: colors.primary }
+                          ]}
+                          onPress={() => setSelectedHour(hour)}
+                        >
+                          <ThemedText 
+                            style={[
+                              styles.timeItemText,
+                              selectedHour === hour && styles.timeItemTextSelected
+                            ]}
+                          >
+                            {hour.toString().padStart(2, '0')}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                    
+                    <ThemedText style={styles.timeSeparator}>:</ThemedText>
+                    
+                    {/* Minutes Scroll */}
+                    <ScrollView 
+                      style={styles.timeScroll}
+                      showsVerticalScrollIndicator={false}
+                    >
+                      {minutes.filter(m => m % 5 === 0).map((minute) => (
+                        <TouchableOpacity
+                          key={`minute-${minute}`}
+                          style={[
+                            styles.timeItem,
+                            selectedMinute === minute && { backgroundColor: colors.primary }
+                          ]}
+                          onPress={() => setSelectedMinute(minute)}
+                        >
+                          <ThemedText 
+                            style={[
+                              styles.timeItemText,
+                              selectedMinute === minute && styles.timeItemTextSelected
+                            ]}
+                          >
+                            {minute.toString().padStart(2, '0')}
+                          </ThemedText>
+                        </TouchableOpacity>
+                      ))}
+                    </ScrollView>
+                  </View>
+                </View>
+                
+                <View style={styles.timePickerFooter}>
+                  <TouchableOpacity 
+                    style={styles.timePickerCancelButton}
+                    onPress={dismissTimePicker}
+                  >
+                    <ThemedText style={styles.timePickerCancelText}>Anuluj</ThemedText>
+                  </TouchableOpacity>
+                  <TouchableOpacity 
+                    style={[styles.timePickerConfirmButton, { backgroundColor: colors.primary }]}
+                    onPress={confirmTime}
+                  >
+                    <ThemedText style={styles.timePickerConfirmText}>Potwierdź</ThemedText>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </Modal>
+
           {/* Search Button */}
           <TouchableOpacity
             style={[styles.searchButton, { backgroundColor: colors.primary }]}
@@ -564,7 +755,11 @@ export default function RouteSelectionModal() {
             </TouchableOpacity>
           </View>
         ) : route ? (
-          <View style={styles.routeDetailsContainer}>
+          <ScrollView 
+            style={styles.scrollView}
+            contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={true}
+          >
             <View style={[styles.routeCard, { backgroundColor: colors.card }]}>
               {/* Route Header */}
               <View style={styles.routeItemHeader}>
@@ -608,40 +803,86 @@ export default function RouteSelectionModal() {
                 </View>
               </View>
 
-              {/* All Stops */}
-              <View style={styles.allStopsSection}>
-                <ThemedText type="defaultSemiBold" style={styles.stopsTitle}>
-                  Wszystkie przystanki
-                </ThemedText>
-                {route.stops?.map((stop, index) => (
-                  <View key={stop.uuid} style={styles.stopItem}>
-                    <View style={styles.stopIndicatorContainer}>
-                      <View
-                        style={[
-                          styles.stopDot,
-                          {
-                            backgroundColor:
-                              index === 0
-                                ? colors.primary
-                                : index === route.stops!.length - 1
-                                ? colors.secondary
-                                : colors.border,
-                          },
-                        ]}
-                      />
-                      {index < route.stops!.length - 1 && (
-                        <View style={[styles.stopLine, { backgroundColor: colors.border }]} />
-                      )}
+              {/* Segments - Only start and end of each segment */}
+              {route.segments && route.segments.length > 0 && (
+                <View style={styles.segmentsSection}>
+                  <ThemedText type="defaultSemiBold" style={styles.segmentsTitle}>
+                    Szczegóły trasy
+                  </ThemedText>
+                  {route.segments.map((segment, segmentIndex) => (
+                    <View key={segment.segmentId} style={styles.segmentContainer}>
+                      {/* Segment Header */}
+                      <View style={styles.segmentHeader}>
+                        {segment.type === 'walking' ? (
+                          <View style={styles.segmentTypeContainer}>
+                            <MaterialIcons name="directions-walk" size={18} color={colors.icon} />
+                            <ThemedText style={styles.segmentTypeText}>
+                              Spacer {segment.walkingDistanceMeters ? `(${(segment.walkingDistanceMeters / 1000).toFixed(1)} km)` : ''}
+                            </ThemedText>
+                          </View>
+                        ) : (
+                          <View style={styles.segmentTypeContainer}>
+                            <View style={[styles.lineBadge, { backgroundColor: colors.primary }]}>
+                              <ThemedText style={styles.lineNumber}>
+                                {segment.vehicleInfo?.lineNumber || 'Bus'}
+                              </ThemedText>
+                            </View>
+                            <ThemedText style={styles.segmentTypeText}>
+                              {segment.vehicleInfo?.destination || 'Transport publiczny'}
+                            </ThemedText>
+                          </View>
+                        )}
+                        <ThemedText style={styles.segmentDuration}>
+                          {segment.durationMinutes} min
+                        </ThemedText>
+                      </View>
+
+                      {/* Start Stop */}
+                      <View style={styles.segmentStop}>
+                        <View style={styles.stopIndicatorContainer}>
+                          <View
+                            style={[
+                              styles.stopDot,
+                              {
+                                backgroundColor: segmentIndex === 0 ? colors.primary : colors.secondary,
+                              },
+                            ]}
+                          />
+                          <View style={[styles.stopLine, { backgroundColor: colors.border }]} />
+                        </View>
+                        <View style={styles.stopDetails}>
+                          <ThemedText style={styles.stopName}>{segment.fromStop.name}</ThemedText>
+                          <ThemedText style={styles.stopTime}>
+                            Odjazd: {segment.departureTime}
+                          </ThemedText>
+                        </View>
+                      </View>
+
+                      {/* End Stop */}
+                      <View style={styles.segmentStop}>
+                        <View style={styles.stopIndicatorContainer}>
+                          <View
+                            style={[
+                              styles.stopDot,
+                              {
+                                backgroundColor: segmentIndex === route.segments!.length - 1 
+                                  ? colors.secondary 
+                                  : colors.icon,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <View style={styles.stopDetails}>
+                          <ThemedText style={styles.stopName}>{segment.toStop.name}</ThemedText>
+                          <ThemedText style={styles.stopTime}>
+                            Przyjazd: {segment.arrivalTime}
+                          </ThemedText>
+                        </View>
+                      </View>
                     </View>
-                    <View style={styles.stopDetails}>
-                      <ThemedText style={styles.stopName}>{stop.name}</ThemedText>
-                      <ThemedText style={styles.stopTime}>
-                        {stop.departureTime || stop.arrivalTime}
-                      </ThemedText>
-                    </View>
-                  </View>
-                ))}
-              </View>
+                  ))}
+                </View>
+              )}
             </View>
 
             {/* Select Button */}
@@ -652,7 +893,7 @@ export default function RouteSelectionModal() {
               <MaterialIcons name="check-circle" size={24} color="#fff" />
               <ThemedText style={styles.selectButtonText}>Wybierz tę trasę</ThemedText>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         ) : null}
       </View>
     </ThemedView>
@@ -767,6 +1008,128 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontFamily: 'Poppins-SemiBold',
   },
+  timePickerButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    paddingVertical: 14,
+    paddingHorizontal: 16,
+    borderRadius: 12,
+    marginBottom: 12,
+  },
+  timePickerContent: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  timePickerLabel: {
+    fontSize: 14,
+    opacity: 0.7,
+  },
+  timePickerValue: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  timePickerModal: {
+    borderRadius: 12,
+    marginBottom: 12,
+    overflow: 'hidden',
+  },
+  timePickerHeader: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  timePickerDoneButton: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+  },
+  iosTimePicker: {
+    height: 200,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  timePickerModalContent: {
+    width: '100%',
+    maxWidth: 400,
+    borderRadius: 16,
+    overflow: 'hidden',
+  },
+  timePickerTitle: {
+    fontSize: 18,
+  },
+  timePickerBody: {
+    padding: 20,
+  },
+  timePickerScrolls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 12,
+  },
+  timeScroll: {
+    height: 200,
+    width: 80,
+  },
+  timeItem: {
+    paddingVertical: 12,
+    paddingHorizontal: 20,
+    borderRadius: 8,
+    marginVertical: 4,
+    alignItems: 'center',
+  },
+  timeItemText: {
+    fontSize: 20,
+    fontFamily: 'Poppins-Medium',
+  },
+  timeItemTextSelected: {
+    color: '#FFFFFF',
+    fontFamily: 'Poppins-Bold',
+  },
+  timeSeparator: {
+    fontSize: 32,
+    fontFamily: 'Poppins-Bold',
+    marginHorizontal: 8,
+  },
+  timePickerFooter: {
+    flexDirection: 'row',
+    gap: 12,
+    padding: 16,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  timePickerCancelButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(128, 128, 128, 0.3)',
+  },
+  timePickerCancelText: {
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+  },
+  timePickerConfirmButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 8,
+    alignItems: 'center',
+  },
+  timePickerConfirmText: {
+    fontSize: 16,
+    fontFamily: 'Poppins-SemiBold',
+    color: '#FFFFFF',
+  },
   resultsContainer: {
     flex: 1,
   },
@@ -877,6 +1240,12 @@ const styles = StyleSheet.create({
     flex: 1,
     padding: 16,
   },
+  scrollView: {
+    flex: 1,
+  },
+  scrollContent: {
+    padding: 16,
+  },
   routeCard: {
     padding: 16,
     borderRadius: 12,
@@ -890,6 +1259,60 @@ const styles = StyleSheet.create({
   stopsTitle: {
     fontSize: 14,
     marginBottom: 8,
+  },
+  segmentsSection: {
+    gap: 12,
+    marginTop: 8,
+  },
+  segmentsTitle: {
+    fontSize: 14,
+    marginBottom: 8,
+  },
+  segmentContainer: {
+    gap: 8,
+    marginBottom: 12,
+    paddingBottom: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.2)',
+  },
+  segmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 8,
+  },
+  segmentTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    flex: 1,
+  },
+  segmentTypeText: {
+    fontSize: 13,
+    opacity: 0.7,
+    flex: 1,
+  },
+  segmentDuration: {
+    fontSize: 12,
+    opacity: 0.6,
+    fontFamily: 'Poppins-Medium',
+  },
+  lineBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    minWidth: 40,
+    alignItems: 'center',
+  },
+  lineNumber: {
+    color: '#FFFFFF',
+    fontSize: 12,
+    fontFamily: 'Poppins-Bold',
+  },
+  segmentStop: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
   },
   stopItem: {
     flexDirection: 'row',

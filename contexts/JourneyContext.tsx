@@ -7,6 +7,22 @@ export interface Stop {
   departureTime?: string;
 }
 
+export interface RouteSegment {
+  segmentId: number;
+  type: 'walking' | 'transit';
+  fromStop: Stop;
+  toStop: Stop;
+  departureTime: string;
+  arrivalTime: string;
+  durationMinutes: number;
+  walkingDistanceMeters?: number;
+  vehicleInfo?: {
+    lineNumber: number;
+    destination: string;
+    type: string;
+  };
+}
+
 export interface Journey {
   id: string;
   routeNumber: string;
@@ -20,6 +36,7 @@ export interface Journey {
   // API-related fields
   vehicleUuid?: string;
   stops?: Stop[]; // Lista wszystkich przystanków na trasie
+  segments?: RouteSegment[]; // Segmenty trasy (walking + transit)
   currentStopIndex?: number; // Indeks obecnego przystanku
 }
 
