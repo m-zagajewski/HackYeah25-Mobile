@@ -10,12 +10,12 @@ import React, { useEffect, useState } from "react";
 import {
   Animated,
   Dimensions,
+  Modal,
   Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
-  Modal,
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
