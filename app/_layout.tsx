@@ -6,6 +6,7 @@ import { StatusBar } from 'expo-status-bar';
 import { useEffect } from 'react';
 import 'react-native-reanimated';
 
+import { JourneyProvider } from '@/contexts/JourneyContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -36,26 +37,28 @@ export default function RootLayout() {
   }
 
   return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-        <Stack.Screen 
-          name="live-track" 
-          options={{ 
-            title: 'Live Tracking',
-            headerBackTitle: 'Back',
-          }} 
-        />
-        <Stack.Screen 
-          name="report-issue" 
-          options={{ 
-            title: 'Report Issue',
-            headerBackTitle: 'Back',
-          }} 
-        />
-        <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
+    <JourneyProvider>
+      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <Stack>
+          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+          <Stack.Screen 
+            name="live-track" 
+            options={{ 
+              title: 'Live Tracking',
+              headerBackTitle: 'Back',
+            }} 
+          />
+          <Stack.Screen 
+            name="report-issue" 
+            options={{ 
+              title: 'Report Issue',
+              headerBackTitle: 'Back',
+            }} 
+          />
+          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+        </Stack>
+        <StatusBar style="auto" />
+      </ThemeProvider>
+    </JourneyProvider>
   );
 }

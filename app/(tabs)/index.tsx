@@ -2,6 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
+import { Journey, useJourney } from "@/contexts/JourneyContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
@@ -15,37 +16,14 @@ import {
   View,
 } from "react-native";
 
-interface Journey {
-  id: string;
-  routeNumber: string;
-  destination: string;
-  departure: string;
-  arrival: string;
-  status: "on-time" | "delayed" | "cancelled";
-  delayMinutes?: number;
-  currentStop?: string;
-  nextStop?: string;
-}
-
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
+  const { currentJourney } = useJourney();
 
   const [fromLocation, setFromLocation] = useState("");
   const [toLocation, setToLocation] = useState("");
-
-  // Mock data - next journey (set to null if no active journey)
-  const nextJourney: Journey | null = {
-    id: "1",
-    routeNumber: "42",
-    destination: "Central Station",
-    departure: "14:30",
-    arrival: "15:15",
-    status: "on-time",
-    currentStop: "Market Square",
-    nextStop: "City Hall",
-  };
 
   const handleSearchConnection = () => {
     router.push("/(tabs)/explore");
@@ -154,7 +132,7 @@ export default function HomeScreen() {
           </View>{" "}
           {/* Current/Next Journey - Takes remaining space */}
           <View style={styles.journeyContainer}>
-            {nextJourney ? (
+            {currentJourney ? (
               <View
                 style={[styles.journeyCard, { backgroundColor: colors.card }]}
               >
@@ -176,11 +154,11 @@ export default function HomeScreen() {
                   <View
                     style={[
                       styles.statusBadge,
-                      { backgroundColor: getStatusColor(nextJourney.status) },
+                      { backgroundColor: getStatusColor(currentJourney.status) },
                     ]}
                   >
                     <ThemedText style={styles.statusText}>
-                      {getStatusText(nextJourney)}
+                      {getStatusText(currentJourney)}
                     </ThemedText>
                   </View>
                 </View>
@@ -194,7 +172,7 @@ export default function HomeScreen() {
                     ]}
                   >
                     <ThemedText style={styles.routeNumber}>
-                      {nextJourney.routeNumber}
+                      {currentJourney.routeNumber}
                     </ThemedText>
                   </View>
                   <View style={styles.routeDetails}>
@@ -202,7 +180,7 @@ export default function HomeScreen() {
                       type="defaultSemiBold"
                       style={styles.destination}
                     >
-                      {nextJourney.destination}
+                      {currentJourney.destination}
                     </ThemedText>
                     <View style={styles.timeRow}>
                       <View style={styles.timeItem}>
@@ -213,7 +191,7 @@ export default function HomeScreen() {
                           type="defaultSemiBold"
                           style={styles.timeValue}
                         >
-                          {nextJourney.departure}
+                          {currentJourney.departure}
                         </ThemedText>
                       </View>
                       <IconSymbol
@@ -229,7 +207,7 @@ export default function HomeScreen() {
                           type="defaultSemiBold"
                           style={styles.timeValue}
                         >
-                          {nextJourney.arrival}
+                          {currentJourney.arrival}
                         </ThemedText>
                       </View>
                     </View>
@@ -254,7 +232,7 @@ export default function HomeScreen() {
                           type="defaultSemiBold"
                           style={styles.stopName}
                         >
-                          {nextJourney.currentStop}
+                          {currentJourney.currentStop}
                         </ThemedText>
                       </View>
                     </View>
@@ -271,7 +249,7 @@ export default function HomeScreen() {
                           Następny Przystanek
                         </ThemedText>
                         <ThemedText style={styles.stopName}>
-                          {nextJourney.nextStop}
+                          {currentJourney.nextStop}
                         </ThemedText>
                       </View>
                     </View>
