@@ -346,25 +346,13 @@ export default function HomeScreen() {
               <View
                 style={[styles.emptyJourney, { backgroundColor: colors.card }]}
               >
-                <IconSymbol size={56} name="ticket" color={colors.icon} />
+                <IconSymbol size={40} name="ticket" color={colors.icon} style={{ opacity: 0.3 }} />
                 <ThemedText style={styles.emptyTitle}>
                   Brak Aktywnej Podróży
                 </ThemedText>
                 <ThemedText style={styles.emptySubtitle}>
-                  Wyszukaj połączenia lub kup bilet, aby rozpocząć śledzenie
+                  Wyszukaj połączenia powyżej
                 </ThemedText>
-                <TouchableOpacity
-                  style={[
-                    styles.buyTicketBtn,
-                    { backgroundColor: colors.primary },
-                  ]}
-                  onPress={() => router.push("/(tabs)/explore")}
-                >
-                  <IconSymbol size={20} name="ticket.fill" color="#fff" />
-                  <ThemedText style={styles.buyTicketBtnText}>
-                    Kup Bilet
-                  </ThemedText>
-                </TouchableOpacity>
               </View>
             )}
           </View>
@@ -634,23 +622,22 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-SemiBold",
   },
   emptyJourney: {
-    flex: 1,
     alignItems: "center",
     justifyContent: "center",
     borderRadius: 16,
-    padding: 32,
+    paddingVertical: 40,
+    paddingHorizontal: 24,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 16,
     fontFamily: "Poppins-SemiBold",
-    marginTop: 16,
-    marginBottom: 8,
+    marginTop: 12,
+    marginBottom: 4,
   },
   emptySubtitle: {
-    fontSize: 14,
-    opacity: 0.7,
+    fontSize: 13,
+    opacity: 0.6,
     textAlign: "center",
-    marginBottom: 24,
   },
   buyTicketBtn: {
     flexDirection: "row",
