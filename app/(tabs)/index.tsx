@@ -319,7 +319,7 @@ export default function HomeScreen() {
                       { backgroundColor: colors.warning },
                     ]}
                     onPress={() => {
-                      /* Report issue */
+                      router.push("/report-issue");
                     }}
                   >
                     <IconSymbol

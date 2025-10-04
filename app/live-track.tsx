@@ -165,25 +165,6 @@ export default function LiveTrackScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      {/* Header */}
-      <View style={[styles.header, { backgroundColor: colors.primary }]}>
-        <TouchableOpacity
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          <MaterialIcons name="arrow-back" size={24} color="#fff" />
-        </TouchableOpacity>
-        <View style={styles.headerContent}>
-          <ThemedText style={styles.headerTitle}>Live Tracking Kurwa</ThemedText>
-          <ThemedText style={styles.headerSubtitle}>
-            Route {journey.routeNumber} • {journey.vehicle}
-          </ThemedText>
-        </View>
-        <TouchableOpacity style={styles.refreshButton}>
-          <MaterialIcons name="refresh" size={24} color="#fff" />
-        </TouchableOpacity>
-      </View>
-
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {/* Live Map */}
         <View style={styles.mapContainer}>
@@ -255,68 +236,6 @@ export default function LiveTrackScreen() {
               ]}
             />
           )}
-
-          {/* Vehicle Info Overlay */}
-          <View
-            style={[
-              styles.vehicleInfoOverlay,
-              { backgroundColor: colors.card },
-            ]}
-          >
-            <View style={styles.vehicleInfoRow}>
-              <View style={styles.infoItem}>
-                <MaterialIcons
-                  name="speed"
-                  size={20}
-                  color={colors.secondary}
-                />
-                <View style={styles.infoText}>
-                  <ThemedText style={styles.infoLabel}>Speed</ThemedText>
-                  <ThemedText style={styles.infoValue}>
-                    {Math.round(vehiclePosition.speed)} km/h
-                  </ThemedText>
-                </View>
-              </View>
-
-              <View style={styles.infoItem}>
-                <MaterialIcons
-                  name="people"
-                  size={20}
-                  color={colors.warning}
-                />
-                <View style={styles.infoText}>
-                  <ThemedText style={styles.infoLabel}>Occupancy</ThemedText>
-                  <ThemedText style={styles.infoValue}>
-                    {journey.occupancy}%
-                  </ThemedText>
-                </View>
-              </View>
-
-              <View style={styles.infoItem}>
-                <MaterialIcons
-                  name="schedule"
-                  size={20}
-                  color={
-                    journey.delay > 0 ? colors.danger : colors.success
-                  }
-                />
-                <View style={styles.infoText}>
-                  <ThemedText style={styles.infoLabel}>Status</ThemedText>
-                  <ThemedText
-                    style={[
-                      styles.infoValue,
-                      {
-                        color:
-                          journey.delay > 0 ? colors.danger : colors.success,
-                      },
-                    ]}
-                  >
-                    {journey.delay === 0 ? "On Time" : `+${journey.delay}m`}
-                  </ThemedText>
-                </View>
-              </View>
-            </View>
-          </View>
         </View>
 
         {/* Next Stop Card */}
