@@ -8,13 +8,14 @@ import { AppleMaps, GoogleMaps } from "expo-maps";
 import { useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  Modal,
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -27,13 +28,6 @@ interface Stop {
   delay?: number;
 }
 
-interface VehiclePosition {
-  latitude: number;
-  longitude: number;
-  speed: number;
-  heading: number;
-}
-
 export default function LiveTrackScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
@@ -43,23 +37,7 @@ export default function LiveTrackScreen() {
   const [progress] = useState(new Animated.Value(0));
   const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
   const [locationPermission, setLocationPermission] = useState(false);
-  const [vehiclePosition, setVehiclePosition] = useState<VehiclePosition>({
-    latitude: 52.2297,
-    longitude: 21.0122,
-    speed: 45,
-    heading: 90,
-  });
-
-  // Mock journey data
-  const journey = {
-    routeNumber: "42",
-    destination: "Central Station",
-    vehicle: "Tram 4201",
-    occupancy: 68, // percentage
-    nextStop: "City Hall",
-    arrival: "15:15",
-    delay: 0,
-  };
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   const stops: Stop[] = [
     {
@@ -118,20 +96,6 @@ export default function LiveTrackScreen() {
     })();
   }, []);
 
-  // Simulate vehicle movement
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setVehiclePosition((prev) => ({
-        ...prev,
-        latitude: prev.latitude + (Math.random() - 0.5) * 0.001,
-        longitude: prev.longitude + (Math.random() - 0.5) * 0.001,
-        speed: 40 + Math.random() * 20,
-      }));
-    }, 2000);
-
-    return () => clearInterval(interval);
-  }, []);
-
   // Animate progress bar
   useEffect(() => {
     Animated.timing(progress, {
@@ -165,40 +129,32 @@ export default function LiveTrackScreen() {
 
   return (
     <ThemedView style={styles.container}>
-      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {/* Live Map */}
-        <View style={styles.mapContainer}>
-          {Platform.OS === "ios" ? (
+      {/* Fullscreen Map Modal */}
+      <Modal
+        visible={isMapFullscreen}
+        animationType="slide"
+        onRequestClose={() => setIsMapFullscreen(false)}
+      >
+        <View style={styles.fullscreenMapContainer}>
+          {userLocation && (Platform.OS === "ios" ? (
             <AppleMaps.View
               style={styles.map}
               cameraPosition={{
                 coordinates: {
-                  latitude: vehiclePosition.latitude,
-                  longitude: vehiclePosition.longitude,
+                  latitude: userLocation.coords.latitude,
+                  longitude: userLocation.coords.longitude,
                 },
                 zoom: 14,
               }}
               markers={[
                 {
-                  id: "vehicle",
+                  id: "user",
                   coordinates: {
-                    latitude: vehiclePosition.latitude,
-                    longitude: vehiclePosition.longitude,
+                    latitude: userLocation.coords.latitude,
+                    longitude: userLocation.coords.longitude,
                   },
-                  title: journey.vehicle,
+                  title: "Your Location",
                 },
-                ...(userLocation
-                  ? [
-                      {
-                        id: "user",
-                        coordinates: {
-                          latitude: userLocation.coords.latitude,
-                          longitude: userLocation.coords.longitude,
-                        },
-                        title: "Your Location",
-                      },
-                    ]
-                  : []),
               ]}
             />
           ) : (
@@ -206,36 +162,102 @@ export default function LiveTrackScreen() {
               style={styles.map}
               cameraPosition={{
                 coordinates: {
-                  latitude: vehiclePosition.latitude,
-                  longitude: vehiclePosition.longitude,
+                  latitude: userLocation.coords.latitude,
+                  longitude: userLocation.coords.longitude,
                 },
                 zoom: 14,
               }}
               markers={[
                 {
-                  id: "vehicle",
+                  id: "user",
                   coordinates: {
-                    latitude: vehiclePosition.latitude,
-                    longitude: vehiclePosition.longitude,
+                    latitude: userLocation.coords.latitude,
+                    longitude: userLocation.coords.longitude,
                   },
-                  title: journey.vehicle,
-                  snippet: `Speed: ${Math.round(vehiclePosition.speed)} km/h`,
+                  title: "Your Location",
                 },
-                ...(userLocation
-                  ? [
-                      {
-                        id: "user",
-                        coordinates: {
-                          latitude: userLocation.coords.latitude,
-                          longitude: userLocation.coords.longitude,
-                        },
-                        title: "Your Location",
-                      },
-                    ]
-                  : []),
               ]}
             />
-          )}
+          ))}
+          
+          {/* Close Fullscreen Button */}
+          <TouchableOpacity
+            style={[styles.fullscreenExitButton, { backgroundColor: colors.card }]}
+            onPress={() => setIsMapFullscreen(false)}
+          >
+            <MaterialIcons
+              name="fullscreen-exit"
+              size={20}
+              color={colors.text}
+            />
+            <ThemedText style={[styles.fullscreenButtonText, { color: colors.text }]}>
+              Exit Fullscreen
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+      </Modal>
+
+      <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+        {/* Live Map */}
+        <View style={styles.mapContainer}>
+          {userLocation && (Platform.OS === "ios" ? (
+            <AppleMaps.View
+              style={styles.map}
+              cameraPosition={{
+                coordinates: {
+                  latitude: userLocation.coords.latitude,
+                  longitude: userLocation.coords.longitude,
+                },
+                zoom: 14,
+              }}
+              markers={[
+                {
+                  id: "user",
+                  coordinates: {
+                    latitude: userLocation.coords.latitude,
+                    longitude: userLocation.coords.longitude,
+                  },
+                  title: "Your Location",
+                },
+              ]}
+            />
+          ) : (
+            <GoogleMaps.View
+              style={styles.map}
+              cameraPosition={{
+                coordinates: {
+                  latitude: userLocation.coords.latitude,
+                  longitude: userLocation.coords.longitude,
+                },
+                zoom: 14,
+              }}
+              markers={[
+                {
+                  id: "user",
+                  coordinates: {
+                    latitude: userLocation.coords.latitude,
+                    longitude: userLocation.coords.longitude,
+                  },
+                  title: "Your Location",
+                },
+              ]}
+            />
+          ))}
+          
+          {/* Fullscreen Toggle Button */}
+          <TouchableOpacity
+            style={[styles.fullscreenButton, { backgroundColor: colors.card }]}
+            onPress={() => setIsMapFullscreen(true)}
+          >
+            <MaterialIcons
+              name="fullscreen"
+              size={20}
+              color={colors.text}
+            />
+            <ThemedText style={[styles.fullscreenButtonText, { color: colors.text }]}>
+              View Fullscreen
+            </ThemedText>
+          </TouchableOpacity>
         </View>
 
         {/* Next Stop Card */}
@@ -250,12 +272,12 @@ export default function LiveTrackScreen() {
           </View>
           <View style={styles.nextStopInfo}>
             <ThemedText type="defaultSemiBold" style={styles.nextStopName}>
-              {journey.nextStop}
+              Central Stration
             </ThemedText>
             <View style={styles.nextStopTime}>
               <MaterialIcons name="access-time" size={16} color={colors.icon} />
               <ThemedText style={styles.nextStopTimeText}>
-                Arriving at {journey.arrival}
+                Arriving at 15.15
               </ThemedText>
             </View>
           </View>
@@ -634,6 +656,47 @@ const styles = StyleSheet.create({
   actionButtonText: {
     color: "#fff",
     fontSize: 15,
+    fontFamily: "Poppins-SemiBold",
+  },
+  fullscreenMapContainer: {
+    flex: 1,
+    backgroundColor: "#000",
+  },
+  fullscreenButton: {
+    position: "absolute",
+    bottom: 0,
+    left: 0,
+    right: 0,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 4,
+    elevation: 5,
+  },
+  fullscreenExitButton: {
+    position: "absolute",
+    bottom: 20,
+    left: 16,
+    right: 16,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 8,
+  },
+  fullscreenButtonText: {
+    fontSize: 14,
     fontFamily: "Poppins-SemiBold",
   },
 });
