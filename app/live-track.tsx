@@ -1,13 +1,13 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
+import { useJourney } from "@/contexts/JourneyContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Location from "expo-location";
 import { AppleMaps, GoogleMaps } from "expo-maps";
 import { useRouter } from "expo-router";
 import React, { useEffect, useRef, useState } from "react";
-import { useJourney } from "@/contexts/JourneyContext";
 import {
   Animated,
   Dimensions,
