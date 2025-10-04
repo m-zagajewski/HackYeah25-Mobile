@@ -13,9 +13,8 @@ import {
   SafeAreaView,
   StatusBar,
   StyleSheet,
-  TextInput,
   TouchableOpacity,
-  View,
+  View
 } from "react-native";
 
 export default function HomeScreen() {

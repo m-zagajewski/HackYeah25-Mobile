@@ -52,15 +52,12 @@ export default function RootLayout() {
             name="report-issue" 
             options={{ 
               title: 'Report Issue',
-              headerBackTitle: 'Back',
             }} 
           />
           <Stack.Screen 
             name="modal" 
             options={{ 
-              presentation: 'modal', 
-              title: 'Wybierz Trasę',
-              headerShown: false,
+              title: 'Planuj Trasę',
             }} 
           />
         </Stack>
