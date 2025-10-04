@@ -1,7 +1,7 @@
 import { ThemedText } from '@/components/themed-text';
 import { ThemedView } from '@/components/themed-view';
 import { Colors } from '@/constants/theme';
-import { Journey, RouteSegment, useJourney } from '@/contexts/JourneyContext';
+import { Journey, useJourney } from '@/contexts/JourneyContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import MaterialIcons from '@expo/vector-icons/MaterialIcons';
 import { useRouter } from 'expo-router';
@@ -18,66 +18,6 @@ import {
   TouchableOpacity,
   View
 } from 'react-native';
-
-// Backend API types
-interface ApiStop {
-  uuid: string;
-  name: string;
-  coordinates: {
-    latitude: number;
-    longitude: number;
-  };
-}
-
-interface ApiVehicle {
-  uuid: string;
-  license_plate: string;
-  type: string;
-  line_number: number;
-  destination: string;
-  capacity: number;
-  owner: string;
-}
-
-interface ApiSegment {
-  segment_id: number;
-  type: 'walking' | 'transit';
-  from_stop: ApiStop;
-  to_stop: ApiStop;
-  departure_timestamp: number;
-  arrival_timestamp: number;
-  duration_minutes: number;
-  walking_distance_meters: number | null;
-  vehicle: ApiVehicle | null;
-  delay: number | null;
-}
-
-interface ApiRouteResponse {
-  success: boolean;
-  message: string;
-  route_segments: ApiSegment[];
-  summary: {
-    total_duration_minutes: number;
-    total_walking_time_minutes: number;
-    total_walking_distance_meters: number;
-    total_wait_time_minutes: number;
-    total_delay_time_minutes: number;
-    number_of_transfers: number;
-    departure_timestamp: number;
-    arrival_timestamp: number;
-    segments_count: number;
-    walking_segments_count: number;
-    transit_segments_count: number;
-  };
-}
-
-const API_BASE_URL = 'http://192.168.2.2:8000/api/v1';
-
-// Test case coordinates: Czerwone Maki → Tauron Arena
-const TEST_START_LAT = 50.014623;
-const TEST_START_LON = 19.888062;
-const TEST_END_LAT = 50.067366;
-const TEST_END_LON = 19.990079;
 
 // Popular locations in Kraków with coordinates
 interface LocationSuggestion {
@@ -107,242 +47,15 @@ const KRAKOW_LOCATIONS: LocationSuggestion[] = [
   { name: 'Wola Duchacka', lat: 50.007, lon: 19.925 },
 ];
 
-// Helper function to convert timestamp to time string
-const formatTime = (timestamp: number): string => {
-  const date = new Date(timestamp * 1000);
-  return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
-};
-
-// Transform API response to Journey format
-const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey => {
-  console.log('🔍 All route segments:', JSON.stringify(apiResponse.route_segments, null, 2));
-  console.log('📊 Segment types:', apiResponse.route_segments.map(seg => seg.type));
-  
-  const transitSegments = apiResponse.route_segments.filter(seg => seg.type === 'transit');
-  const walkingSegments = apiResponse.route_segments.filter(seg => seg.type === 'walking');
-  console.log('🚆 Transit segments count:', transitSegments.length);
-  console.log('🚶 Walking segments count:', walkingSegments.length);
-  
-  const isWalkingOnly = transitSegments.length === 0;
-  const allSegments = apiResponse.route_segments;
-  const firstSegment = allSegments[0];
-  const lastSegment = allSegments[allSegments.length - 1];
-  
-  // Group consecutive segments of the same type
-  const groupedSegments: RouteSegment[] = [];
-  let currentGroup: ApiSegment[] = [];
-  let currentType: 'walking' | 'transit' | null = null;
-  
-  allSegments.forEach((seg, index) => {
-    if (seg.type !== currentType) {
-      // Finish previous group
-      if (currentGroup.length > 0) {
-        const firstInGroup = currentGroup[0];
-        const lastInGroup = currentGroup[currentGroup.length - 1];
-        const totalDuration = currentGroup.reduce((sum, s) => sum + s.duration_minutes, 0);
-        const totalWalkingDistance = currentGroup.reduce((sum, s) => sum + (s.walking_distance_meters || 0), 0);
-        
-        groupedSegments.push({
-          segmentId: firstInGroup.segment_id,
-          type: firstInGroup.type,
-          fromStop: {
-            uuid: firstInGroup.from_stop.uuid,
-            name: firstInGroup.from_stop.name,
-            departureTime: formatTime(firstInGroup.departure_timestamp),
-          },
-          toStop: {
-            uuid: lastInGroup.to_stop.uuid,
-            name: lastInGroup.to_stop.name,
-            arrivalTime: formatTime(lastInGroup.arrival_timestamp),
-          },
-          departureTime: formatTime(firstInGroup.departure_timestamp),
-          arrivalTime: formatTime(lastInGroup.arrival_timestamp),
-          durationMinutes: totalDuration,
-          walkingDistanceMeters: totalWalkingDistance > 0 ? totalWalkingDistance : undefined,
-          vehicleInfo: firstInGroup.vehicle ? {
-            lineNumber: firstInGroup.vehicle.line_number,
-            destination: firstInGroup.vehicle.destination,
-            type: firstInGroup.vehicle.type,
-          } : undefined,
-        });
-      }
-      
-      // Start new group
-      currentGroup = [seg];
-      currentType = seg.type;
-    } else {
-      // Add to current group
-      currentGroup.push(seg);
-    }
-  });
-  
-  // Don't forget the last group
-  if (currentGroup.length > 0) {
-    const firstInGroup = currentGroup[0];
-    const lastInGroup = currentGroup[currentGroup.length - 1];
-    const totalDuration = currentGroup.reduce((sum, s) => sum + s.duration_minutes, 0);
-    const totalWalkingDistance = currentGroup.reduce((sum, s) => sum + (s.walking_distance_meters || 0), 0);
-    
-    groupedSegments.push({
-      segmentId: firstInGroup.segment_id,
-      type: firstInGroup.type,
-      fromStop: {
-        uuid: firstInGroup.from_stop.uuid,
-        name: firstInGroup.from_stop.name,
-        departureTime: formatTime(firstInGroup.departure_timestamp),
-      },
-      toStop: {
-        uuid: lastInGroup.to_stop.uuid,
-        name: lastInGroup.to_stop.name,
-        arrivalTime: formatTime(lastInGroup.arrival_timestamp),
-      },
-      departureTime: formatTime(firstInGroup.departure_timestamp),
-      arrivalTime: formatTime(lastInGroup.arrival_timestamp),
-      durationMinutes: totalDuration,
-      walkingDistanceMeters: totalWalkingDistance > 0 ? totalWalkingDistance : undefined,
-      vehicleInfo: firstInGroup.vehicle ? {
-        lineNumber: firstInGroup.vehicle.line_number,
-        destination: firstInGroup.vehicle.destination,
-        type: firstInGroup.vehicle.type,
-      } : undefined,
-    });
-  }
-  
-  const segments = groupedSegments;
-  console.log('✅ Grouped segments:', segments.length, 'segments');
-  console.log('📊 Grouped segment types:', segments.map(s => s.type));
-  
-  if (isWalkingOnly) {
-    // Walking-only route
-    console.log('🚶 This is a walking-only route');
-    
-    const walkingDistanceKm = (apiResponse.summary.total_walking_distance_meters / 1000).toFixed(1);
-    
-    return {
-      id: `route-${Date.now()}`,
-      routeNumber: '🚶',
-      destination: lastSegment?.to_stop.name || 'Cel podróży',
-      departure: formatTime(apiResponse.summary.departure_timestamp),
-      arrival: formatTime(apiResponse.summary.arrival_timestamp),
-      status: 'on-time',
-      currentStop: firstSegment?.from_stop.name,
-      nextStop: allSegments[1]?.from_stop.name || firstSegment?.to_stop.name,
-      segments,
-      currentStopIndex: 0,
-    };
-  }
-  
-  // Transit route (with public transport)
-  console.log('🚆 This is a transit route');
-  const firstTransit = transitSegments[0];
-  const lastTransit = transitSegments[transitSegments.length - 1];
-  
-  // Get the main vehicle/line (most common vehicle in the route)
-  const vehicleCounts = new Map<number, { vehicle: ApiVehicle; count: number }>();
-  transitSegments.forEach(seg => {
-    if (seg.vehicle) {
-      const lineNum = seg.vehicle.line_number;
-      const existing = vehicleCounts.get(lineNum);
-      if (existing) {
-        existing.count++;
-      } else {
-        vehicleCounts.set(lineNum, { vehicle: seg.vehicle, count: 1 });
-      }
-    }
-  });
-  
-  const mainVehicleEntry = Array.from(vehicleCounts.values()).sort((a, b) => b.count - a.count)[0];
-  const mainVehicle = mainVehicleEntry?.vehicle;
-  
-  const hasDelay = apiResponse.summary.total_delay_time_minutes > 0;
-  const status: Journey['status'] = hasDelay ? 'delayed' : 'on-time';
-  
-  return {
-    id: `route-${Date.now()}`,
-    routeNumber: mainVehicle ? mainVehicle.line_number.toString() : 'Bus',
-    destination: lastTransit?.to_stop.name || lastSegment?.to_stop.name || 'Cel podróży',
-    departure: formatTime(apiResponse.summary.departure_timestamp),
-    arrival: formatTime(apiResponse.summary.arrival_timestamp),
-    status,
-    delayMinutes: hasDelay ? apiResponse.summary.total_delay_time_minutes : undefined,
-    currentStop: firstTransit?.from_stop.name || firstSegment?.from_stop.name,
-    nextStop: (transitSegments[1]?.from_stop.name || transitSegments[0]?.to_stop.name) || (allSegments[1]?.from_stop.name || allSegments[0]?.to_stop.name),
-    vehicleUuid: mainVehicle?.uuid,
-    segments,
-    currentStopIndex: 0,
-  };
-};
-
-// Fetch route from backend
-const fetchRoute = async (startLat: number, startLon: number, endLat: number, endLon: number, departureDate?: Date): Promise<Journey | null> => {
-  try {
-    const now = departureDate || new Date();
-    const departureTimestamp = Math.floor(now.getTime() / 1000); // Unix timestamp in seconds
-    
-    const url = `${API_BASE_URL}/plan_route?start_lat=${startLat}&start_lon=${startLon}&end_lat=${endLat}&end_lon=${endLon}&departure_timestamp=${departureTimestamp}`;
-    
-    console.log('🚀 Fetching route from:', url);
-    console.log('⏱️ Departure timestamp:', departureTimestamp, '(', now.toLocaleString('pl-PL'), ')');
-    console.log('⏱️ Timeout set to 60 seconds...');
-    
-    // Create AbortController with 60 second timeout
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 seconds
-    
-    try {
-      const response = await fetch(url, {
-        signal: controller.signal,
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (!response.ok) {
-        console.error('❌ HTTP error! status:', response.status);
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      console.log('📥 Response received, parsing JSON...');
-      const data: ApiRouteResponse = await response.json();
-      console.log('📦 Received data:', JSON.stringify(data, null, 2));
-      
-      if (!data.success) {
-        console.error('❌ API returned success=false:', data.message);
-        throw new Error(data.message || 'Failed to fetch route');
-      }
-      
-      console.log('✅ API success, transforming data...');
-      const journey = transformApiResponseToJourney(data);
-      console.log('✅ Transformed journey:', JSON.stringify(journey, null, 2));
-      
-      return journey;
-    } catch (fetchError) {
-      clearTimeout(timeoutId);
-      if (fetchError instanceof Error && fetchError.name === 'AbortError') {
-        console.error('⏱️ Request timeout after 60 seconds');
-        throw new Error('Zapytanie przekroczyło limit czasu (60s). Spróbuj ponownie.');
-      }
-      throw fetchError;
-    }
-  } catch (error) {
-    console.error('💥 Error in fetchRoute:', error);
-    throw error;
-  }
-};
-
 export default function RouteSelectionModal() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const router = useRouter();
-  const { setCurrentJourney, addJourneyToHistory } = useJourney();
+  const { setCurrentJourney, addJourneyToHistory, fetchRoute, isLoadingRoute } = useJourney();
 
   const [fromLocation, setFromLocation] = useState('');
   const [toLocation, setToLocation] = useState('');
   const [route, setRoute] = useState<Journey | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   
   // Time picker state
@@ -427,7 +140,6 @@ export default function RouteSelectionModal() {
     console.log('📍 To:', toLocation, toCoords);
     console.log('⏰ Departure time:', departureTime.toLocaleString('pl-PL'));
     
-    setIsLoading(true);
     setError(null);
     Keyboard.dismiss();
     
@@ -453,10 +165,8 @@ export default function RouteSelectionModal() {
       const errorMessage = err instanceof Error ? err.message : 'Nie udało się pobrać trasy';
       setError(errorMessage);
       Alert.alert('Błąd', errorMessage);
-    } finally {
-      setIsLoading(false);
-      console.log('🏁 Search complete, isLoading set to false');
     }
+    console.log('🏁 Search complete');
   };
 
   const handleTimeChange = (event: any, selectedDate?: Date) => {
@@ -528,7 +238,7 @@ export default function RouteSelectionModal() {
     <ThemedView style={styles.container}>
 
       {/* Search Form - Only show if no route yet */}
-      {!route && !isLoading && (
+      {!route && !isLoadingRoute && (
         <View style={styles.searchForm}>
           <View style={[styles.searchSection, { backgroundColor: colors.card }]}>
             <View style={styles.searchInputWrapper}>
@@ -738,7 +448,7 @@ export default function RouteSelectionModal() {
 
       {/* Route Details */}
       <View style={styles.resultsContainer}>
-        {isLoading ? (
+        {isLoadingRoute ? (
           <View style={styles.loadingContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
             <ThemedText style={styles.loadingText}>Wyszukiwanie trasy...</ThemedText>

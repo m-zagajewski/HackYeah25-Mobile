@@ -6,7 +6,8 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Location from "expo-location";
 import { AppleMaps, GoogleMaps } from "expo-maps";
 import { useRouter } from "expo-router";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import { useJourney } from "@/contexts/JourneyContext";
 import {
   Animated,
   Dimensions,
@@ -38,58 +39,93 @@ export default function LiveTrackScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
+  const { currentJourney } = useJourney();
+  const stopRefs = useRef<{ [key: string]: View | null }>({});
+  const scrollViewRef = useRef<ScrollView>(null);
 
-  const [currentStop, setCurrentStop] = useState(2);
   const [progress] = useState(new Animated.Value(0));
   const [userLocation, setUserLocation] =
     useState<Location.LocationObject | null>(null);
   const [locationPermission, setLocationPermission] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
+  const [visibleStopIndex, setVisibleStopIndex] = useState(0);
 
-  const stops: Stop[] = [
-    {
-      id: "1",
-      name: "Station Plaza",
-      time: "14:30",
-      status: "completed",
-    },
-    {
-      id: "2",
-      name: "Market Square",
-      time: "14:38",
-      status: "completed",
-    },
-    {
-      id: "3",
-      name: "City Hall",
-      time: "14:45",
-      status: "current",
-    },
-    {
-      id: "4",
-      name: "University Campus",
-      time: "14:52",
-      status: "upcoming",
-    },
-    {
-      id: "5",
-      name: "Shopping District",
-      time: "14:58",
-      status: "upcoming",
-    },
-    {
-      id: "6",
-      name: "Park Avenue",
-      time: "15:05",
-      status: "upcoming",
-    },
-    {
-      id: "7",
-      name: "Central Station",
-      time: "15:15",
-      status: "upcoming",
-    },
-  ];
+  // Calculate journey progress based on time
+  const calculateJourneyProgress = (): number => {
+    if (!currentJourney?.departure || !currentJourney?.arrival) return 0;
+    
+    const parseTime = (timeStr: string): Date => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+    
+    const now = new Date();
+    const departureTime = parseTime(currentJourney.departure);
+    const arrivalTime = parseTime(currentJourney.arrival);
+    
+    if (arrivalTime < departureTime) {
+      arrivalTime.setDate(arrivalTime.getDate() + 1);
+    }
+    
+    const totalDuration = arrivalTime.getTime() - departureTime.getTime();
+    const elapsed = now.getTime() - departureTime.getTime();
+    
+    return Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
+  };
+
+  // Generate stops from journey segments
+  const stops: Stop[] = (() => {
+    if (!currentJourney?.segments || currentJourney.segments.length === 0) return [];
+    
+    const now = new Date();
+    const parseTime = (timeStr: string): Date => {
+      const [hours, minutes] = timeStr.split(':').map(Number);
+      const date = new Date();
+      date.setHours(hours, minutes, 0, 0);
+      return date;
+    };
+    
+    const getStopStatus = (time: string): Stop['status'] => {
+      if (!time) return 'upcoming';
+      const stopTime = parseTime(time);
+      const diffMinutes = (stopTime.getTime() - now.getTime()) / (1000 * 60);
+      
+      console.log(`🕐 Stop time: ${time}, diff: ${diffMinutes.toFixed(1)} min`);
+      
+      if (diffMinutes < -2) return 'completed';
+      if (diffMinutes < 5) return 'current';
+      return 'upcoming';
+    };
+    
+    const allStops: Stop[] = [];
+    
+    // Add start stop of each segment
+    currentJourney.segments.forEach((segment, index) => {
+      allStops.push({
+        id: `${segment.segmentId}-start`,
+        name: segment.fromStop.name,
+        time: segment.departureTime || "",
+        status: getStopStatus(segment.departureTime),
+      });
+    });
+    
+    // Add the final destination (end of last segment)
+    const lastSegment = currentJourney.segments[currentJourney.segments.length - 1];
+    allStops.push({
+      id: `${lastSegment.segmentId}-end`,
+      name: lastSegment.toStop.name,
+      time: lastSegment.arrivalTime || "",
+      status: getStopStatus(lastSegment.arrivalTime),
+    });
+    
+    return allStops;
+  })();
+
+  // Find current stop index
+  const currentStopIndex = stops.findIndex(stop => stop.status === 'current');
+  const activeStopIndex = currentStopIndex >= 0 ? currentStopIndex : Math.max(0, stops.findIndex(stop => stop.status === 'upcoming') - 1);
 
   // Request location permission and get user location
   useEffect(() => {
@@ -111,12 +147,30 @@ export default function LiveTrackScreen() {
 
   // Animate progress bar
   useEffect(() => {
+    if (stops.length === 0) return;
     Animated.timing(progress, {
-      toValue: (currentStop / stops.length) * 100,
+      toValue: ((activeStopIndex + 1) / stops.length) * 100,
       duration: 1000,
       useNativeDriver: false,
     }).start();
-  }, [currentStop]);
+  }, [activeStopIndex, stops.length]);
+
+  // Auto-scroll to current stop when it changes
+  useEffect(() => {
+    if (activeStopIndex >= 0 && stops.length > 0) {
+      const stopId = stops[activeStopIndex]?.id;
+      const stopView = stopRefs.current[stopId];
+      if (stopView && scrollViewRef.current) {
+        stopView.measureLayout(
+          scrollViewRef.current as any,
+          (x, y) => {
+            scrollViewRef.current?.scrollTo({ y: y - 50, animated: true });
+          },
+          () => {}
+        );
+      }
+    }
+  }, [activeStopIndex, stops]);
 
   const getStopIcon = (status: Stop["status"]) => {
     switch (status) {
@@ -149,6 +203,27 @@ export default function LiveTrackScreen() {
       <ThemedView
         style={[styles.container, { backgroundColor: "transparent" }]}
       >
+        {!currentJourney ? (
+          <View style={[styles.noJourneyContainer, { backgroundColor: colors.card }]}>
+            <MaterialIcons name="route" size={64} color={colors.icon} style={{ opacity: 0.5 }} />
+            <ThemedText type="title" style={[styles.noJourneyTitle, { marginTop: 16 }]}>
+              Brak aktywnej podróży
+            </ThemedText>
+            <ThemedText style={[styles.noJourneyText, { color: colors.icon, marginTop: 8 }]}>
+              Wyszukaj trasę, aby rozpocząć śledzenie
+            </ThemedText>
+            <TouchableOpacity
+              style={[styles.searchButton, { backgroundColor: colors.primary, marginTop: 24 }]}
+              onPress={() => router.back()}
+            >
+              <MaterialIcons name="search" size={20} color="#fff" />
+              <ThemedText style={[styles.searchButtonText, { color: "#fff" }]}>
+                Wyszukaj Trasę
+              </ThemedText>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <>
         {/* Fullscreen Map Modal */}
         <Modal
           visible={isMapFullscreen}
@@ -326,7 +401,7 @@ export default function LiveTrackScreen() {
             </View>
             <View style={styles.nextStopInfo}>
               <ThemedText type="defaultSemiBold" style={styles.nextStopName}>
-                Central Stration
+                {currentJourney?.destination || "Brak danych"}
               </ThemedText>
               <View style={styles.nextStopTime}>
                 <MaterialIcons
@@ -335,7 +410,7 @@ export default function LiveTrackScreen() {
                   color={colors.icon}
                 />
                 <ThemedText style={styles.nextStopTimeText}>
-                  Przyjazd o 15:15
+                  Przyjazd o {currentJourney?.arrival || "--:--"}
                 </ThemedText>
               </View>
             </View>
@@ -348,7 +423,10 @@ export default function LiveTrackScreen() {
               <View
                 style={[
                   styles.nextStopProgressFill,
-                  { backgroundColor: colors.primary, width: "65%" },
+                  { 
+                    backgroundColor: colors.primary, 
+                    width: `${calculateJourneyProgress()}%` 
+                  },
                 ]}
               />
             </View>
@@ -361,13 +439,40 @@ export default function LiveTrackScreen() {
                 Wszystkie Przystanki
               </ThemedText>
               <ThemedText style={[styles.stopsCount, { color: colors.icon }]}>
-                {currentStop + 1} z {stops.length}
+                {visibleStopIndex + 1} z {stops.length}
               </ThemedText>
             </View>
 
-            <View style={styles.stopsList}>
+            <ScrollView 
+              ref={scrollViewRef}
+              style={styles.stopsList}
+              showsVerticalScrollIndicator={false}
+              onScroll={(event) => {
+                const offsetY = event.nativeEvent.contentOffset.y;
+                // Calculate which stop is approximately visible
+                const approximateIndex = Math.floor(offsetY / 70); // assuming ~70px per stop
+                if (approximateIndex >= 0 && approximateIndex < stops.length) {
+                  setVisibleStopIndex(approximateIndex);
+                }
+              }}
+              scrollEventThrottle={16}
+            >
               {stops.map((stop, index) => (
-                <View key={stop.id} style={styles.stopItem}>
+                <View 
+                  key={stop.id} 
+                  style={[
+                    styles.stopItem,
+                    stop.status === "current" && {
+                      borderLeftWidth: 3,
+                      borderLeftColor: colors.primary,
+                      paddingLeft: 5,
+                    }
+                  ]}
+                  ref={(ref) => {
+                    stopRefs.current[stop.id] = ref;
+                  }}
+                  collapsable={false}
+                >
                   {/* Connection Line */}
                   {index > 0 && (
                     <View
@@ -384,11 +489,24 @@ export default function LiveTrackScreen() {
                   )}
 
                   {/* Stop Content */}
-                  <View style={styles.stopContent}>
+                  <View 
+                    style={[
+                      styles.stopContent,
+                      stop.status === "current" && {
+                        backgroundColor: colors.primary + '15', // 15 = ~8% opacity
+                        marginHorizontal: -8,
+                        paddingHorizontal: 8,
+                        borderRadius: 8,
+                      }
+                    ]}
+                  >
                     <View
                       style={[
                         styles.stopIconContainer,
                         { backgroundColor: getStopColor(stop.status) },
+                        stop.status === "current" && {
+                          transform: [{ scale: 1.2 }],
+                        }
                       ]}
                     >
                       {stop.status === "completed" ? (
@@ -455,23 +573,11 @@ export default function LiveTrackScreen() {
                   </View>
                 </View>
               ))}
-            </View>
+            </ScrollView>
           </View>
 
           {/* Quick Actions */}
           <View style={styles.actionsContainer}>
-            <TouchableOpacity
-              style={[
-                styles.actionButton,
-                { backgroundColor: colors.secondary },
-              ]}
-            >
-              <MaterialIcons name="notifications" size={24} color="#fff" />
-              <ThemedText style={styles.actionButtonText}>
-                Powiadom o Przyjeździe
-              </ThemedText>
-            </TouchableOpacity>
-
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.warning }]}
             >
@@ -480,17 +586,10 @@ export default function LiveTrackScreen() {
                 Zgłoś Problem
               </ThemedText>
             </TouchableOpacity>
-
-            <TouchableOpacity
-              style={[styles.actionButton, { backgroundColor: colors.accent }]}
-            >
-              <MaterialIcons name="share" size={24} color="#fff" />
-              <ThemedText style={styles.actionButtonText}>
-                Udostępnij Podróż
-              </ThemedText>
-            </TouchableOpacity>
           </View>
         </ScrollView>
+        </>
+        )}
       </ThemedView>
     </ImageBackground>
   );
@@ -499,6 +598,34 @@ export default function LiveTrackScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  noJourneyContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    margin: 16,
+    borderRadius: 16,
+    padding: 32,
+  },
+  noJourneyTitle: {
+    fontSize: 20,
+    textAlign: "center",
+  },
+  noJourneyText: {
+    fontSize: 14,
+    textAlign: "center",
+  },
+  searchButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 12,
+    gap: 8,
+  },
+  searchButtonText: {
+    fontSize: 15,
+    fontFamily: "Poppins-SemiBold",
   },
   header: {
     paddingTop: 60,
@@ -651,7 +778,7 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
   },
   stopsList: {
-    gap: 0,
+    maxHeight: 300,
   },
   stopItem: {
     position: "relative",
