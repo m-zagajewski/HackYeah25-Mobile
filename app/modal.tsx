@@ -586,6 +586,7 @@ export default function RouteSelectionModal() {
                   key={index}
                   style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
                   onPress={() => selectFromSuggestion(suggestion)}
+                  activeOpacity={0.7}
                 >
                   <MaterialIcons name="place" size={20} color={colors.icon} />
                   <ThemedText style={styles.suggestionText}>{suggestion.name}</ThemedText>
@@ -601,6 +602,7 @@ export default function RouteSelectionModal() {
                   key={index}
                   style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
                   onPress={() => selectToSuggestion(suggestion)}
+                  activeOpacity={0.7}
                 >
                   <MaterialIcons name="place" size={20} color={colors.icon} />
                   <ThemedText style={styles.suggestionText}>{suggestion.name}</ThemedText>
@@ -660,6 +662,7 @@ export default function RouteSelectionModal() {
                             selectedHour === hour && { backgroundColor: colors.primary }
                           ]}
                           onPress={() => setSelectedHour(hour)}
+                          activeOpacity={0.7}
                         >
                           <ThemedText 
                             style={[
@@ -688,6 +691,7 @@ export default function RouteSelectionModal() {
                             selectedMinute === minute && { backgroundColor: colors.primary }
                           ]}
                           onPress={() => setSelectedMinute(minute)}
+                          activeOpacity={0.7}
                         >
                           <ThemedText 
                             style={[
@@ -773,11 +777,11 @@ export default function RouteSelectionModal() {
                   <View style={styles.stopsInfo}>
                     <MaterialIcons name="my-location" size={14} color={colors.icon} />
                     <ThemedText style={styles.stopText} numberOfLines={1}>
-                      {route.currentStop}
+                      {route.segments?.[0]?.fromStop.name || route.currentStop}
                     </ThemedText>
                     <MaterialIcons name="arrow-forward" size={14} color={colors.icon} />
                     <ThemedText style={styles.stopText} numberOfLines={1}>
-                      {route.nextStop}
+                      {route.segments?.[route.segments.length - 1]?.toStop.name || route.destination}
                     </ThemedText>
                   </View>
                 </View>
@@ -959,13 +963,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 14,
+    paddingVertical: 16,
     paddingHorizontal: 16,
     borderBottomWidth: 1,
+    minHeight: 56,
   },
   suggestionText: {
     fontSize: 15,
     fontFamily: 'Poppins-Regular',
+    flex: 1,
   },
   searchInputWrapper: {
     flexDirection: 'row',
@@ -1081,11 +1087,14 @@ const styles = StyleSheet.create({
     width: 80,
   },
   timeItem: {
-    paddingVertical: 12,
+    width: '100%',
+    paddingVertical: 16,
     paddingHorizontal: 20,
     borderRadius: 8,
-    marginVertical: 4,
+    marginVertical: 2,
     alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 48,
   },
   timeItemText: {
     fontSize: 20,
