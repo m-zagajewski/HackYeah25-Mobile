@@ -55,7 +55,14 @@ export default function RootLayout() {
               headerBackTitle: 'Back',
             }} 
           />
-          <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
+          <Stack.Screen 
+            name="modal" 
+            options={{ 
+              presentation: 'modal', 
+              title: 'Wybierz Trasę',
+              headerShown: false,
+            }} 
+          />
         </Stack>
         <StatusBar style="auto" />
       </ThemeProvider>

@@ -28,7 +28,7 @@ export default function HomeScreen() {
   const [toLocation, setToLocation] = useState("");
 
   const handleSearchConnection = () => {
-    router.push("/(tabs)/explore");
+    router.push("/modal");
   };
 
   const getStatusColor = (status: Journey["status"]) => {
@@ -88,7 +88,11 @@ export default function HomeScreen() {
         </View>
 
         <View style={styles.content}>
-          <View style={[styles.searchSection, , { backgroundColor: colors.card }]}>
+          <TouchableOpacity 
+            style={[styles.searchSection, { backgroundColor: colors.card }]}
+            onPress={handleSearchConnection}
+            activeOpacity={0.7}
+          >
             <View style={styles.searchInputWrapper}>
               {/* Connection Line on Left */}
               <View style={styles.connectionLine}>
@@ -113,27 +117,19 @@ export default function HomeScreen() {
               {/* Input Fields Stacked */}
               <View style={styles.inputsContainer}>
                 <View style={styles.stackedInput}>
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    placeholder="Aktualna lokalizacja"
-                    placeholderTextColor={colors.icon}
-                    value={fromLocation}
-                    onChangeText={setFromLocation}
-                  />
+                  <ThemedText style={[styles.inputPlaceholder, { color: colors.icon }]}>
+                    {fromLocation || "Aktualna lokalizacja"}
+                  </ThemedText>
                 </View>
 
                 <View style={styles.stackedInput}>
-                  <TextInput
-                    style={[styles.input, { color: colors.text }]}
-                    placeholder="Dokąd"
-                    placeholderTextColor={colors.icon}
-                    value={toLocation}
-                    onChangeText={setToLocation}
-                  />
+                  <ThemedText style={[styles.inputPlaceholder, { color: colors.icon }]}>
+                    {toLocation || "Dokąd"}
+                  </ThemedText>
                 </View>
               </View>
             </View>
-          </View>{" "}
+          </TouchableOpacity>
           {/* Current/Next Journey - Takes remaining space */}
           <View style={styles.journeyContainer}>
             {currentJourney ? (
@@ -452,6 +448,11 @@ const styles = StyleSheet.create({
   input: {
     flex: 1,
     fontSize: 15,
+  },
+  inputPlaceholder: {
+    flex: 1,
+    fontSize: 15,
+    fontFamily: 'Poppins-Regular',
   },
   searchButton: {
     flexDirection: "row",
