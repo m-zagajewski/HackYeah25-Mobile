@@ -17,6 +17,7 @@ import {
   StyleSheet,
   TouchableOpacity,
   View,
+  StatusBar
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
@@ -300,6 +301,7 @@ export default function LiveTrackScreen() {
       style={styles.container}
       resizeMode="cover"
     >
+      <StatusBar barStyle={colorScheme === "dark" ? "light-content" : "dark-content"} />
       <ThemedView
         style={[styles.container, { backgroundColor: "transparent" }]}
       >

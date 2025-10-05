@@ -415,7 +415,11 @@ export default function RouteSelectionModal() {
               activeOpacity={1}
               onPress={dismissTimePicker}
             >
-              <View style={[styles.timePickerModalContent, { backgroundColor: colors.card }]}>
+              <TouchableOpacity 
+                style={[styles.timePickerModalContent, { backgroundColor: colors.card }]}
+                activeOpacity={1}
+                onPress={() => {}}
+              >
                 <View style={styles.timePickerHeader}>
                   <ThemedText type="defaultSemiBold" style={styles.timePickerTitle}>
                     Wybierz godzinę odjazdu
@@ -496,7 +500,7 @@ export default function RouteSelectionModal() {
                     <ThemedText style={styles.timePickerConfirmText}>Potwierdź</ThemedText>
                   </TouchableOpacity>
                 </View>
-              </View>
+              </TouchableOpacity>
             </TouchableOpacity>
           </Modal>
 
@@ -847,7 +851,7 @@ const styles = StyleSheet.create({
   },
   timePickerHeader: {
     flexDirection: 'row',
-    justifyContent: 'flex-end',
+    justifyContent: 'center',
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderBottomWidth: 1,
@@ -875,6 +879,8 @@ const styles = StyleSheet.create({
   },
   timePickerTitle: {
     fontSize: 18,
+    fontFamily: 'Poppins-SemiBold',
+    alignItems: 'center',
   },
   timePickerBody: {
     padding: 20,
