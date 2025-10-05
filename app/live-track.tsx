@@ -134,25 +134,39 @@ export default function LiveTrackScreen() {
 
   // Calculate center point of the route for better map positioning
   const routeCenter = (() => {
-    if (routeGeometry.length === 0) {
-      return userLocation ? {
+    // Priority 1: User location if available and no route
+    if (!routeGeometry.length && userLocation) {
+      console.log('🎯 Centering map on user location');
+      return {
         latitude: userLocation.coords.latitude,
         longitude: userLocation.coords.longitude,
-      } : { latitude: 50.0614, longitude: 19.9372 };
+      };
     }
     
-    const latitudes = routeGeometry.map(coord => coord.latitude);
-    const longitudes = routeGeometry.map(coord => coord.longitude);
+    // Priority 2: Route center if route exists
+    if (routeGeometry.length > 0) {
+      console.log('🗺️ Centering map on route');
+      const latitudes = routeGeometry.map(coord => coord.latitude);
+      const longitudes = routeGeometry.map(coord => coord.longitude);
+      
+      return {
+        latitude: (Math.min(...latitudes) + Math.max(...latitudes)) / 2,
+        longitude: (Math.min(...longitudes) + Math.max(...longitudes)) / 2,
+      };
+    }
     
-    return {
-      latitude: (Math.min(...latitudes) + Math.max(...latitudes)) / 2,
-      longitude: (Math.min(...longitudes) + Math.max(...longitudes)) / 2,
-    };
+    // Priority 3: Default Kraków location
+    console.log('🏢 Using default Kraków location');
+    return { latitude: 50.0614, longitude: 19.9372 };
   })();
 
   // Calculate appropriate zoom level based on route bounds
   const routeZoom = (() => {
-    if (routeGeometry.length < 2) return 13;
+    // If no route, use city-level zoom
+    if (routeGeometry.length < 2) {
+      console.log('🔍 Using default zoom for user location');
+      return 14; // Good zoom level for user location
+    }
     
     const latitudes = routeGeometry.map(coord => coord.latitude);
     const longitudes = routeGeometry.map(coord => coord.longitude);
@@ -160,6 +174,8 @@ export default function LiveTrackScreen() {
     const latDiff = Math.max(...latitudes) - Math.min(...latitudes);
     const lonDiff = Math.max(...longitudes) - Math.min(...longitudes);
     const maxDiff = Math.max(latDiff, lonDiff);
+    
+    console.log('📏 Route span:', maxDiff);
     
     // Adjust zoom based on coordinate span
     if (maxDiff > 0.1) return 11;
@@ -171,7 +187,10 @@ export default function LiveTrackScreen() {
 
   // Create markers array
   const mapMarkers = [];
+  console.log('📍 Creating markers - userLocation:', !!userLocation, 'startCoordinate:', !!startCoordinate, 'endCoordinate:', !!endCoordinate);
+  
   if (userLocation) {
+    console.log('👤 Adding user marker at:', userLocation.coords.latitude, userLocation.coords.longitude);
     mapMarkers.push({
       id: "user",
       coordinates: {
@@ -233,17 +252,44 @@ export default function LiveTrackScreen() {
   // Request location permission and get user location
   useEffect(() => {
     (async () => {
+      console.log('🔍 Requesting location permission...');
       const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log('📍 Location permission status:', status);
+      
       if (status === "granted") {
         setLocationPermission(true);
-        // const location = await Location.getCurrentPositionAsync({});
-        // setUserLocation(location);
-        setUserLocation({
-  coords: {
-    latitude: 50.0614,
-    longitude: 19.9372,
-  },
-} as Location.LocationObject);
+        try {
+          console.log('📱 Getting current position...');
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          console.log('✅ Location received:', location.coords.latitude, location.coords.longitude);
+          setUserLocation(location);
+        } catch (error) {
+          console.warn('❌ Error getting location:', error);
+          
+          // Check if running on simulator/emulator
+          const isSimulator = Platform.OS === 'ios' ? 
+            await Location.hasServicesEnabledAsync() === false :
+            false;
+            
+          if (isSimulator) {
+            console.log('🔧 Detected simulator - using test location in Kraków');
+          } else {
+            console.log('🔧 Real device but location failed - using fallback');
+          }
+          
+          // Use a location in Kraków for testing
+          const fallbackLocation = {
+            coords: {
+              latitude: 50.0614, // Kraków center
+              longitude: 19.9372,
+            },
+          } as Location.LocationObject;
+          setUserLocation(fallbackLocation);
+        }
+      } else {
+        console.log('🚫 Location permission denied');
       }
     })();
   }, []);
