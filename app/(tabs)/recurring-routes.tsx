@@ -10,10 +10,8 @@ import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
-    Dimensions,
     Image,
     ImageBackground,
-    Modal,
     Platform,
     RefreshControl,
     SafeAreaView,
@@ -21,7 +19,7 @@ import {
     StatusBar,
     StyleSheet,
     TouchableOpacity,
-    View,
+    View
 } from "react-native";
 
 // ===== TYPY =====
