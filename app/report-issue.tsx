@@ -120,7 +120,7 @@ export default function ReportIssueScreen() {
     setIsSubmitting(true);
 
     try {
-      const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.2.2:8000';
+      const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
       
       const payload: DelayReportPayload = {
         vehicle_uuid: vehicleUuid || `line-${currentSegment.vehicleInfo.lineNumber}`,

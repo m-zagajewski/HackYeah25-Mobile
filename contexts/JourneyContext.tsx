@@ -1,5 +1,7 @@
 import React, { createContext, ReactNode, useContext, useState } from 'react';
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
 // Backend API types
 interface ApiStop {
   uuid: string;
@@ -52,8 +54,6 @@ interface ApiRouteResponse {
   };
   detailed_geometry?: [number, number][]; // Array of [latitude, longitude] coordinates
 }
-
-const API_BASE_URL = 'http://192.168.2.2:8000/api/v1';
 
 export interface Stop {
   uuid: string;
@@ -316,7 +316,7 @@ export const JourneyProvider: React.FC<{ children: ReactNode }> = ({ children })
       console.log('  End:', { lat: endLat, lon: endLon });
       console.log('  Departure:', now.toLocaleString('pl-PL'), '(timestamp:', departureTimestamp, ')');
       
-      const url = `${API_BASE_URL}/plan_route?start_lat=${startLat}&start_lon=${startLon}&end_lat=${endLat}&end_lon=${endLon}&timestamp=${departureTimestamp}`;
+      const url = `${API_BASE_URL}/api/v1/plan_route?start_lat=${startLat}&start_lon=${startLon}&end_lat=${endLat}&end_lon=${endLon}&timestamp=${departureTimestamp}`;
       
       console.log('🚀 Fetching route from:', url);
       

@@ -27,6 +27,13 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="recurring-routes"
+        options={{
+          title: 'Regularne',
+          tabBarIcon: ({ color }) => <IconSymbol size={28} name="repeat" color={color} />,
+        }}
+      />
+      <Tabs.Screen
         name="explore"
         options={{
           title: 'Kup Bilet',

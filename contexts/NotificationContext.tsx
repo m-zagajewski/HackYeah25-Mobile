@@ -4,6 +4,8 @@ import * as Notifications from 'expo-notifications';
 import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
+
 // Configure notification handler
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -132,9 +134,6 @@ export const NotificationProvider: React.FC<{ children: ReactNode }> = ({ childr
         
         // Send token to backend
         try {
-          // TODO: Replace with your actual backend URL
-          const API_BASE_URL = 'http://192.168.2.2:8000/api/v1';
-          
           const response = await fetch(`${API_BASE_URL}/register_push_token`, {
             method: 'POST',
             headers: {
