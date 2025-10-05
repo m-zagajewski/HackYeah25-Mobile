@@ -26,7 +26,7 @@ export default function LiveTrackScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
-  const { currentJourney } = useJourney();
+  const { currentJourney, fetchRoute, isLoadingRoute, setCurrentJourney } = useJourney();
 
   const [userLocation, setUserLocation] =
     useState<Location.LocationObject | null>(null);
@@ -132,6 +132,40 @@ export default function LiveTrackScreen() {
   };
 
   const segmentPolylines = createSegmentPolylines();
+
+  // Refresh route function
+  const handleRefreshRoute = async () => {
+    if (!currentJourney || !routeGeometry.length) {
+      console.log('⚠️ No current journey or route geometry to refresh');
+      return;
+    }
+
+    try {
+      // Use first and last coordinates from route geometry as start/end points
+      const startCoord = routeGeometry[0];
+      const endCoord = routeGeometry[routeGeometry.length - 1];
+      
+      console.log('🔄 Refreshing route...');
+      console.log('📍 Start:', startCoord);
+      console.log('📍 End:', endCoord);
+      
+      const refreshedJourney = await fetchRoute(
+        startCoord.latitude,
+        startCoord.longitude,
+        endCoord.latitude,
+        endCoord.longitude,
+        new Date() // Use current time for departure
+      );
+
+      if (refreshedJourney) {
+        console.log('✅ Route refreshed successfully');
+      } else {
+        console.log('❌ Failed to refresh route');
+      }
+    } catch (error) {
+      console.error('❌ Error refreshing route:', error);
+    }
+  };
 
   // Calculate center point of the route for better map positioning
   const routeCenter = (() => {
@@ -481,14 +515,31 @@ export default function LiveTrackScreen() {
           {/* All Stops */}
           <View style={[styles.stopsCard, { backgroundColor: colors.card }]}>
             <View style={styles.stopsHeader}>
-              <ThemedText type="defaultSemiBold" style={styles.stopsTitle}>
-                Szczegóły trasy
-              </ThemedText>
-              {currentJourney?.segments && (
-                <ThemedText style={[styles.stopsCount, { color: colors.icon }]}>
-                  {currentJourney.segments.length} {currentJourney.segments.length === 1 ? 'segment' : 'segmentów'}
+              <View style={styles.stopsHeaderLeft}>
+                <ThemedText type="defaultSemiBold" style={styles.stopsTitle}>
+                  Szczegóły trasy
                 </ThemedText>
-              )}
+                {currentJourney?.segments && (
+                  <ThemedText style={[styles.stopsCount, { color: colors.icon }]}>
+                    {currentJourney.segments.length} {currentJourney.segments.length === 1 ? 'segment' : 'segmentów'}
+                  </ThemedText>
+                )}
+              </View>
+              <TouchableOpacity
+                style={[styles.routeRefreshButton, { backgroundColor: colors.primary }]}
+                onPress={handleRefreshRoute}
+                disabled={isLoadingRoute}
+              >
+                <MaterialIcons 
+                  name="refresh" 
+                  size={18} 
+                  color="#fff" 
+                  style={isLoadingRoute && styles.refreshButtonLoading} 
+                />
+                <ThemedText style={[styles.routeRefreshButtonText, { color: "#fff" }]}>
+                  {isLoadingRoute ? 'Odświeżanie...' : 'Odśwież'}
+                </ThemedText>
+              </TouchableOpacity>
             </View>
 
             <View>
@@ -956,5 +1007,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     marginTop: 4,
+  },
+  stopsHeaderLeft: {
+    flex: 1,
+  },
+  routeRefreshButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 8,
+  },
+  routeRefreshButtonText: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Medium',
+  },
+  refreshButtonLoading: {
+    transform: [{ rotate: '45deg' }],
   },
 });
