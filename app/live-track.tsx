@@ -14,10 +14,10 @@ import {
   Modal,
   Platform,
   ScrollView,
+  StatusBar,
   StyleSheet,
   TouchableOpacity,
-  View,
-  StatusBar
+  View
 } from "react-native";
 
 const { width, height } = Dimensions.get("window");
