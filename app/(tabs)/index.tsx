@@ -240,6 +240,22 @@ export default function HomeScreen() {
                           {currentJourney.arrival}
                         </ThemedText>
                       </View>
+                      {currentJourney.durationMinutes && (
+                        <>
+                          <View style={[styles.timeDivider, { backgroundColor: colors.border }]} />
+                          <View style={styles.timeItem}>
+                            <ThemedText style={styles.timeLabel}>
+                              Czas
+                            </ThemedText>
+                            <ThemedText
+                              type="defaultSemiBold"
+                              style={styles.timeValue}
+                            >
+                              {Math.round(currentJourney.durationMinutes)} min
+                            </ThemedText>
+                          </View>
+                        </>
+                      )}
                     </View>
                   </View>
                 </View>
@@ -566,6 +582,11 @@ const styles = StyleSheet.create({
   },
   timeItem: {
     flex: 1,
+  },
+  timeDivider: {
+    width: 1,
+    height: 30,
+    marginHorizontal: 4,
   },
   timeLabel: {
     fontSize: 11,

@@ -7,15 +7,15 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
-    Alert,
-    ImageBackground,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    TextInput,
-    TouchableOpacity,
-    View,
+  Alert,
+  ImageBackground,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  TextInput,
+  TouchableOpacity,
+  View,
 } from "react-native";
 
 interface IssueType {
@@ -81,29 +81,51 @@ export default function ReportIssueScreen() {
       return;
     }
 
-    if (!currentJourney.vehicleUuid || !currentJourney.stops || currentJourney.currentStopIndex === undefined) {
-      console.log('Invalid journey data:', currentJourney);
-      Alert.alert("Błąd", "Brak wymaganych danych o podróży");
+    // Check if we have segments (transit segments contain vehicle info)
+    if (!currentJourney.segments || currentJourney.segments.length === 0) {
+      Alert.alert("Błąd", "Brak danych o trasie");
       return;
     }
 
-    const currentStopData = currentJourney.stops[currentJourney.currentStopIndex];
-    const nextStopData = currentJourney.stops[currentJourney.currentStopIndex + 1];
-
-    if (!currentStopData || !nextStopData) {
-      Alert.alert("Błąd", "Nie można określić przystanków");
+    // Find the current transit segment (skip walking segments)
+    const transitSegments = currentJourney.segments.filter(seg => seg.type === 'transit');
+    
+    if (transitSegments.length === 0) {
+      console.log('No transit segments found - this is a walking-only route');
+      Alert.alert("Błąd", "Ta trasa nie zawiera transportu publicznego");
       return;
+    }
+
+    // Use the first transit segment for reporting
+    const currentSegment = transitSegments[0];
+    
+    if (!currentSegment.vehicleInfo) {
+      console.log('No vehicle info in transit segment:', currentSegment);
+      Alert.alert("Błąd", "Brak informacji o pojeździe");
+      return;
+    }
+
+    const currentStopUuid = currentSegment.fromStop.uuid;
+    const nextStopUuid = currentSegment.toStop.uuid;
+    
+    // Try to get vehicle UUID from the journey or construct it from vehicle info
+    let vehicleUuid = currentJourney.vehicleUuid;
+    
+    if (!vehicleUuid) {
+      // Generate a temporary vehicle identifier based on line number
+      console.log('No vehicleUuid in journey, using line number:', currentSegment.vehicleInfo.lineNumber);
+      Alert.alert("Informacja", "Brak UUID pojazdu. Zgłoszenie zostanie przypisane do linii.");
     }
 
     setIsSubmitting(true);
 
     try {
-      const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'https://your-api-domain.com';
+      const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL || 'http://192.168.2.2:8000';
       
       const payload: DelayReportPayload = {
-        vehicle_uuid: currentJourney.vehicleUuid,
-        current_stop_uuid: currentStopData.uuid,
-        next_stop_uuid: nextStopData.uuid,
+        vehicle_uuid: vehicleUuid || `line-${currentSegment.vehicleInfo.lineNumber}`,
+        current_stop_uuid: currentStopUuid,
+        next_stop_uuid: nextStopUuid,
         delay_reason: selectedIssue as DelayReason,
       };
 
@@ -189,12 +211,29 @@ export default function ReportIssueScreen() {
 
               {/* Current Journey Info */}
               {currentJourney && (
-                <View style={[styles.journeyBadge, { backgroundColor: colors.background }]}>
-                  <MaterialIcons name="directions-bus" size={18} color={colors.primary} />
-                  <ThemedText style={styles.journeyText}>
-                    Linia {currentJourney.routeNumber} • {currentJourney.currentStop} → {currentJourney.nextStop}
-                  </ThemedText>
-                </View>
+                <>
+                  <View style={[styles.journeyBadge, { backgroundColor: colors.background }]}>
+                    <MaterialIcons 
+                      name={currentJourney.routeNumber === '🚶' ? "directions-walk" : "directions-bus"} 
+                      size={18} 
+                      color={colors.primary} 
+                    />
+                    <ThemedText style={styles.journeyText}>
+                      {currentJourney.routeNumber === '🚶' 
+                        ? `Trasa piesza • ${currentJourney.currentStop} → ${currentJourney.destination}`
+                        : `Linia ${currentJourney.routeNumber} • ${currentJourney.currentStop} → ${currentJourney.nextStop}`
+                      }
+                    </ThemedText>
+                  </View>
+                  {currentJourney.durationMinutes && (
+                    <View style={[styles.journeyBadge, { backgroundColor: colors.background, marginTop: 8 }]}>
+                      <MaterialIcons name="schedule" size={18} color={colors.icon} />
+                      <ThemedText style={styles.journeyText}>
+                        Czas podróży: {Math.round(currentJourney.durationMinutes)} min • {currentJourney.departure} - {currentJourney.arrival}
+                      </ThemedText>
+                    </View>
+                  )}
+                </>
               )}
             </View>
 

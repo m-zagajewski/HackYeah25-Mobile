@@ -86,6 +86,7 @@ export interface Journey {
   arrival: string;
   status: "on-time" | "delayed" | "cancelled";
   delayMinutes?: number;
+  durationMinutes?: number; // Total journey duration
   currentStop?: string;
   nextStop?: string;
   // API-related fields
@@ -233,6 +234,7 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
       departure: formatTime(apiResponse.summary.departure_timestamp),
       arrival: formatTime(apiResponse.summary.arrival_timestamp),
       status: 'on-time',
+      durationMinutes: Math.round(apiResponse.summary.total_duration_minutes),
       currentStop: firstSegment?.from_stop.name,
       nextStop: allSegments[1]?.from_stop.name || firstSegment?.to_stop.name,
       segments,
@@ -274,6 +276,7 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
     arrival: formatTime(apiResponse.summary.arrival_timestamp),
     status,
     delayMinutes: hasDelay ? apiResponse.summary.total_delay_time_minutes : undefined,
+    durationMinutes: Math.round(apiResponse.summary.total_duration_minutes),
     currentStop: firstTransit?.from_stop.name || firstSegment?.from_stop.name,
     nextStop: (transitSegments[1]?.from_stop.name || transitSegments[0]?.to_stop.name) || (allSegments[1]?.from_stop.name || allSegments[0]?.to_stop.name),
     vehicleUuid: mainVehicle?.uuid,

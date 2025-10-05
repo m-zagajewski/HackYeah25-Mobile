@@ -7,9 +7,8 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import * as Location from "expo-location";
 import { AppleMaps, GoogleMaps } from "expo-maps";
 import { useRouter } from "expo-router";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Animated,
   Dimensions,
   ImageBackground,
   Modal,
@@ -22,28 +21,16 @@ import {
 
 const { width, height } = Dimensions.get("window");
 
-interface Stop {
-  id: string;
-  name: string;
-  time: string;
-  status: "completed" | "current" | "upcoming";
-  delay?: number;
-}
-
 export default function LiveTrackScreen() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
   const { currentJourney } = useJourney();
-  const stopRefs = useRef<{ [key: string]: View | null }>({});
-  const scrollViewRef = useRef<ScrollView>(null);
 
-  const [progress] = useState(new Animated.Value(0));
   const [userLocation, setUserLocation] =
     useState<Location.LocationObject | null>(null);
   const [locationPermission, setLocationPermission] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
-  const [visibleStopIndex, setVisibleStopIndex] = useState(0);
 
   // Get route geometry from journey context
   const routeGeometry = currentJourney?.routeGeometry || [];
@@ -145,58 +132,6 @@ export default function LiveTrackScreen() {
     return Math.max(0, Math.min(100, (elapsed / totalDuration) * 100));
   };
 
-  // Generate stops from journey segments
-  const stops: Stop[] = (() => {
-    if (!currentJourney?.segments || currentJourney.segments.length === 0) return [];
-    
-    const now = new Date();
-    const parseTime = (timeStr: string): Date => {
-      const [hours, minutes] = timeStr.split(':').map(Number);
-      const date = new Date();
-      date.setHours(hours, minutes, 0, 0);
-      return date;
-    };
-    
-    const getStopStatus = (time: string): Stop['status'] => {
-      if (!time) return 'upcoming';
-      const stopTime = parseTime(time);
-      const diffMinutes = (stopTime.getTime() - now.getTime()) / (1000 * 60);
-      
-      console.log(`🕐 Stop time: ${time}, diff: ${diffMinutes.toFixed(1)} min`);
-      
-      if (diffMinutes < -2) return 'completed';
-      if (diffMinutes < 5) return 'current';
-      return 'upcoming';
-    };
-    
-    const allStops: Stop[] = [];
-    
-    // Add start stop of each segment
-    currentJourney.segments.forEach((segment, index) => {
-      allStops.push({
-        id: `${segment.segmentId}-start`,
-        name: segment.fromStop.name,
-        time: segment.departureTime || "",
-        status: getStopStatus(segment.departureTime),
-      });
-    });
-    
-    // Add the final destination (end of last segment)
-    const lastSegment = currentJourney.segments[currentJourney.segments.length - 1];
-    allStops.push({
-      id: `${lastSegment.segmentId}-end`,
-      name: lastSegment.toStop.name,
-      time: lastSegment.arrivalTime || "",
-      status: getStopStatus(lastSegment.arrivalTime),
-    });
-    
-    return allStops;
-  })();
-
-  // Find current stop index
-  const currentStopIndex = stops.findIndex(stop => stop.status === 'current');
-  const activeStopIndex = currentStopIndex >= 0 ? currentStopIndex : Math.max(0, stops.findIndex(stop => stop.status === 'upcoming') - 1);
-
   // Request location permission and get user location
   useEffect(() => {
     (async () => {
@@ -214,55 +149,6 @@ export default function LiveTrackScreen() {
       }
     })();
   }, []);
-
-  // Animate progress bar
-  useEffect(() => {
-    if (stops.length === 0) return;
-    Animated.timing(progress, {
-      toValue: ((activeStopIndex + 1) / stops.length) * 100,
-      duration: 1000,
-      useNativeDriver: false,
-    }).start();
-  }, [activeStopIndex, stops.length]);
-
-  // Auto-scroll to current stop when it changes
-  useEffect(() => {
-    if (activeStopIndex >= 0 && stops.length > 0) {
-      const stopId = stops[activeStopIndex]?.id;
-      const stopView = stopRefs.current[stopId];
-      if (stopView && scrollViewRef.current) {
-        stopView.measureLayout(
-          scrollViewRef.current as any,
-          (x, y) => {
-            scrollViewRef.current?.scrollTo({ y: y - 50, animated: true });
-          },
-          () => {}
-        );
-      }
-    }
-  }, [activeStopIndex, stops]);
-
-  const getStopIcon = (status: Stop["status"]) => {
-    switch (status) {
-      case "completed":
-        return "checkmark.circle.fill";
-      case "current":
-        return "location.circle.fill";
-      default:
-        return "circle";
-    }
-  };
-
-  const getStopColor = (status: Stop["status"]) => {
-    switch (status) {
-      case "completed":
-        return colors.success;
-      case "current":
-        return colors.primary;
-      default:
-        return colors.border;
-    }
-  };
 
   return (
     <ImageBackground
@@ -459,6 +345,18 @@ export default function LiveTrackScreen() {
                   Przyjazd o {currentJourney?.arrival || "--:--"}
                 </ThemedText>
               </View>
+              {currentJourney?.durationMinutes && (
+                <View style={styles.nextStopTime}>
+                  <MaterialIcons
+                    name="schedule"
+                    size={16}
+                    color={colors.icon}
+                  />
+                  <ThemedText style={styles.nextStopTimeText}>
+                    Czas podróży: {Math.round(currentJourney.durationMinutes)} min
+                  </ThemedText>
+                </View>
+              )}
             </View>
             <View
               style={[
@@ -482,143 +380,127 @@ export default function LiveTrackScreen() {
           <View style={[styles.stopsCard, { backgroundColor: colors.card }]}>
             <View style={styles.stopsHeader}>
               <ThemedText type="defaultSemiBold" style={styles.stopsTitle}>
-                Wszystkie Przystanki
+                Szczegóły trasy
               </ThemedText>
-              <ThemedText style={[styles.stopsCount, { color: colors.icon }]}>
-                {visibleStopIndex + 1} z {stops.length}
-              </ThemedText>
+              {currentJourney?.segments && (
+                <ThemedText style={[styles.stopsCount, { color: colors.icon }]}>
+                  {currentJourney.segments.length} {currentJourney.segments.length === 1 ? 'segment' : 'segmentów'}
+                </ThemedText>
+              )}
             </View>
 
-            <ScrollView 
-              ref={scrollViewRef}
-              style={styles.stopsList}
-              showsVerticalScrollIndicator={false}
-              onScroll={(event) => {
-                const offsetY = event.nativeEvent.contentOffset.y;
-                // Calculate which stop is approximately visible
-                const approximateIndex = Math.floor(offsetY / 70); // assuming ~70px per stop
-                if (approximateIndex >= 0 && approximateIndex < stops.length) {
-                  setVisibleStopIndex(approximateIndex);
-                }
-              }}
-              scrollEventThrottle={16}
-            >
-              {stops.map((stop, index) => (
-                <View 
-                  key={stop.id} 
-                  style={styles.stopItem}
-                  ref={(ref) => {
-                    stopRefs.current[stop.id] = ref;
-                  }}
-                  collapsable={false}
-                >
-                  {/* Connection Line */}
-                  {index > 0 && (
-                    <View
-                      style={[
-                        styles.connectionLine,
-                        {
-                          backgroundColor:
-                            stop.status === "upcoming"
-                              ? colors.border
-                              : colors.primary,
-                        },
-                      ]}
-                    />
-                  )}
-
-                  {/* Stop Content */}
-                  <View 
-                    style={[
-                      styles.stopContent,
-                      stop.status === "current" && {
-                        backgroundColor: colors.primary + '15', // 15 = ~8% opacity
-                        marginHorizontal: -8,
-                        paddingHorizontal: 8,
-                        borderRadius: 8,
-                      }
-                    ]}
-                  >
-                    <View
-                      style={[
-                        styles.stopIconContainer,
-                        { backgroundColor: getStopColor(stop.status) },
-                        stop.status === "current" && {
-                          transform: [{ scale: 1.2 }],
-                        }
-                      ]}
-                    >
-                      {stop.status === "completed" ? (
-                        <MaterialIcons name="check" size={16} color="#fff" />
-                      ) : stop.status === "current" ? (
-                        <MaterialIcons
-                          name="my-location"
-                          size={16}
-                          color="#fff"
-                        />
-                      ) : (
-                        <View
-                          style={[
-                            styles.stopDot,
-                            { backgroundColor: colors.background },
-                          ]}
-                        />
-                      )}
-                    </View>
-
-                    <View style={styles.stopDetails}>
-                      <ThemedText
-                        type={
-                          stop.status === "current"
-                            ? "defaultSemiBold"
-                            : "default"
-                        }
-                        style={[
-                          styles.stopName,
-                          stop.status === "upcoming" && { opacity: 0.6 },
-                        ]}
-                      >
-                        {stop.name}
-                      </ThemedText>
-                      <ThemedText
-                        style={[
-                          styles.stopTime,
-                          { color: colors.icon },
-                          stop.status === "upcoming" && { opacity: 0.6 },
-                        ]}
-                      >
-                        {stop.time}
-                        {stop.delay && stop.delay > 0 && (
-                          <ThemedText style={{ color: colors.danger }}>
-                            {" "}
-                            (+{stop.delay}m)
-                          </ThemedText>
+            <View>
+              {currentJourney?.segments && currentJourney.segments.length > 0 && (
+                <View style={styles.segmentsContainer}>
+                  {currentJourney.segments.map((segment, segmentIndex) => (
+                    <View key={segment.segmentId} style={styles.segmentItem}>
+                      {/* Segment Header */}
+                      <View style={styles.segmentHeader}>
+                        {segment.type === 'walking' ? (
+                          <View style={styles.segmentTypeContainer}>
+                            <View style={[styles.segmentIconContainer, { backgroundColor: colors.border }]}>
+                              <MaterialIcons name="directions-walk" size={20} color={colors.icon} />
+                            </View>
+                            <View style={styles.segmentInfo}>
+                              <ThemedText type="defaultSemiBold" style={styles.segmentTypeText}>
+                                Spacer
+                              </ThemedText>
+                              {segment.walkingDistanceMeters && (
+                                <ThemedText style={[styles.segmentSubtext, { color: colors.icon }]}>
+                                  {(segment.walkingDistanceMeters / 1000).toFixed(1)} km
+                                </ThemedText>
+                              )}
+                            </View>
+                          </View>
+                        ) : (
+                          <View style={styles.segmentTypeContainer}>
+                            <View style={[styles.segmentIconContainer, styles.lineBadge, { backgroundColor: colors.primary }]}>
+                              <ThemedText style={styles.lineNumber}>
+                                {segment.vehicleInfo?.lineNumber || 'Bus'}
+                              </ThemedText>
+                            </View>
+                            <View style={styles.segmentInfo}>
+                              <ThemedText type="defaultSemiBold" style={styles.segmentTypeText}>
+                                {segment.vehicleInfo?.type === 'TRAM' ? 'Tramwaj' : 'Autobus'}
+                              </ThemedText>
+                              <ThemedText style={[styles.segmentSubtext, { color: colors.icon }]}>
+                                {segment.vehicleInfo?.destination || 'Transport publiczny'}
+                              </ThemedText>
+                            </View>
+                          </View>
                         )}
-                      </ThemedText>
-                    </View>
-
-                    {stop.status === "current" && (
-                      <View
-                        style={[
-                          styles.currentBadge,
-                          { backgroundColor: colors.primary },
-                        ]}
-                      >
-                        <ThemedText style={styles.currentBadgeText}>
-                          Current
-                        </ThemedText>
+                        <View style={[styles.durationBadge, { backgroundColor: colors.background }]}>
+                          <MaterialIcons name="schedule" size={14} color={colors.icon} />
+                          <ThemedText style={styles.segmentDuration}>
+                            {Math.round(segment.durationMinutes)} min
+                          </ThemedText>
+                        </View>
                       </View>
-                    )}
-                  </View>
+
+                      {/* Start Stop */}
+                      <View style={styles.segmentStop}>
+                        <View style={styles.stopIndicatorContainer}>
+                          <View
+                            style={[
+                              styles.stopDot,
+                              {
+                                backgroundColor: segmentIndex === 0 ? colors.success : colors.primary,
+                              },
+                            ]}
+                          />
+                          <View style={[styles.stopLine, { backgroundColor: colors.border }]} />
+                        </View>
+                        <View style={styles.stopDetails}>
+                          <ThemedText type="defaultSemiBold" style={styles.stopName}>
+                            {segment.fromStop.name}
+                          </ThemedText>
+                          <View style={styles.stopTimeRow}>
+                            <MaterialIcons name="schedule" size={14} color={colors.icon} />
+                            <ThemedText style={[styles.stopTime, { color: colors.icon }]}>
+                              Odjazd: {segment.departureTime}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* End Stop */}
+                      <View style={styles.segmentStop}>
+                        <View style={styles.stopIndicatorContainer}>
+                          <View
+                            style={[
+                              styles.stopDot,
+                              {
+                                backgroundColor: segmentIndex === currentJourney.segments!.length - 1 
+                                  ? colors.danger 
+                                  : colors.primary,
+                              },
+                            ]}
+                          />
+                        </View>
+                        <View style={styles.stopDetails}>
+                          <ThemedText type="defaultSemiBold" style={styles.stopName}>
+                            {segment.toStop.name}
+                          </ThemedText>
+                          <View style={styles.stopTimeRow}>
+                            <MaterialIcons name="schedule" size={14} color={colors.icon} />
+                            <ThemedText style={[styles.stopTime, { color: colors.icon }]}>
+                              Przyjazd: {segment.arrivalTime}
+                            </ThemedText>
+                          </View>
+                        </View>
+                      </View>
+                    </View>
+                  ))}
                 </View>
-              ))}
-            </ScrollView>
+              )}
+            </View>
           </View>
 
           {/* Quick Actions */}
           <View style={styles.actionsContainer}>
             <TouchableOpacity
               style={[styles.actionButton, { backgroundColor: colors.warning }]}
+              onPress={() => router.push('/report-issue')}
             >
               <MaterialIcons name="report-problem" size={24} color="#fff" />
               <ThemedText style={styles.actionButtonText}>
@@ -816,36 +698,10 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontFamily: "Poppins-Regular",
   },
-  stopsList: {
-    maxHeight: 300,
-  },
-  stopItem: {
-    position: "relative",
-  },
-  connectionLine: {
-    position: "absolute",
-    left: 11,
-    top: -12,
-    width: 2,
-    height: 24,
-  },
-  stopContent: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 12,
-    paddingVertical: 12,
-  },
-  stopIconContainer: {
-    width: 24,
-    height: 24,
-    borderRadius: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
   stopDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 12,
+    height: 12,
+    borderRadius: 6,
   },
   stopDetails: {
     flex: 1,
@@ -857,16 +713,6 @@ const styles = StyleSheet.create({
   stopTime: {
     fontSize: 13,
     fontFamily: "Poppins-Regular",
-  },
-  currentBadge: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 12,
-  },
-  currentBadgeText: {
-    color: "#fff",
-    fontSize: 11,
-    fontFamily: "Poppins-SemiBold",
   },
   actionsContainer: {
     marginHorizontal: 16,
@@ -927,5 +773,86 @@ const styles = StyleSheet.create({
   fullscreenButtonText: {
     fontSize: 14,
     fontFamily: "Poppins-SemiBold",
+  },
+  // Segments styles
+  segmentsContainer: {
+    gap: 8,
+  },
+  segmentItem: {
+    marginBottom: 16,
+    paddingBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(128, 128, 128, 0.15)',
+  },
+  segmentHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
+  segmentTypeContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    flex: 1,
+  },
+  segmentIconContainer: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  lineBadge: {
+    minWidth: 40,
+  },
+  lineNumber: {
+    color: '#FFFFFF',
+    fontSize: 14,
+    fontFamily: 'Poppins-Bold',
+  },
+  segmentInfo: {
+    flex: 1,
+  },
+  segmentTypeText: {
+    fontSize: 15,
+  },
+  segmentSubtext: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Regular',
+    marginTop: 2,
+  },
+  durationBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  segmentDuration: {
+    fontSize: 12,
+    fontFamily: 'Poppins-Medium',
+  },
+  segmentStop: {
+    flexDirection: 'row',
+    gap: 12,
+    alignItems: 'flex-start',
+    marginBottom: 8,
+  },
+  stopIndicatorContainer: {
+    alignItems: 'center',
+    width: 20,
+  },
+  stopLine: {
+    width: 2,
+    flex: 1,
+    minHeight: 32,
+  },
+  stopTimeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginTop: 4,
   },
 });
