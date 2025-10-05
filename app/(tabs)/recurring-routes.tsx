@@ -109,13 +109,13 @@ interface CalculatedRoute {
 }
 
 // ===== API =====
-const API_BASE_URL = "http://localhost:8000/api/v1";
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_BASE_URL;
 
 async function fetchRecurringRoutes(
   activeOnly = true
 ): Promise<RecurringRoute[]> {
   const response = await fetch(
-    `${API_BASE_URL}/recurring-routes?active_only=${activeOnly}`
+    `${API_BASE_URL}/api/v1/recurring-routes?active_only=${activeOnly}`
   );
   const data = await response.json();
   return data.success ? data.routes : [];
@@ -124,7 +124,7 @@ async function fetchRecurringRoutes(
 async function fetchRouteDetails(
   routeId: string
 ): Promise<RecurringRouteDetail | null> {
-  const response = await fetch(`${API_BASE_URL}/recurring-routes/${routeId}`);
+  const response = await fetch(`${API_BASE_URL}/api/v1/recurring-routes/${routeId}`);
   const data = await response.json();
   return data.success ? data.route : null;
 }
@@ -133,13 +133,85 @@ async function calculateRoute(
   routeId: string,
   useNow = false
 ): Promise<CalculatedRoute | null> {
-  const url = `${API_BASE_URL}/recurring-routes/${routeId}/calculate-route${
+  const url = `${API_BASE_URL}/api/v1/recurring-routes/${routeId}/calculate-route${
     useNow ? "?use_now=true" : ""
   }`;
   const response = await fetch(url);
   const data = await response.json();
   return data.success ? data : null;
 }
+
+// ===== POMOCNICZE FUNKCJE =====
+
+// Helper function to format time
+const formatTime = (timestamp: number): string => {
+  const date = new Date(timestamp * 1000);
+  return date.toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+};
+
+// Group consecutive segments of the same type (like in JourneyContext)
+const groupConsecutiveSegments = (segments: RouteSegment[]): RouteSegment[] => {
+  if (segments.length === 0) return [];
+  
+  const groupedSegments: RouteSegment[] = [];
+  let currentGroup: RouteSegment[] = [];
+  let currentType: 'walking' | 'transit' | null = null;
+  
+  segments.forEach((seg, index) => {
+    if (seg.type !== currentType) {
+      // Finish previous group
+      if (currentGroup.length > 0) {
+        const firstInGroup = currentGroup[0];
+        const lastInGroup = currentGroup[currentGroup.length - 1];
+        const totalDuration = currentGroup.reduce((sum, s) => sum + s.duration_minutes, 0);
+        const totalWalkingDistance = currentGroup.reduce((sum, s) => sum + (s.walking_distance_meters || 0), 0);
+        
+        groupedSegments.push({
+          segment_id: firstInGroup.segment_id,
+          type: firstInGroup.type,
+          from_stop: firstInGroup.from_stop,
+          to_stop: lastInGroup.to_stop,
+          departure_timestamp: firstInGroup.departure_timestamp,
+          arrival_timestamp: lastInGroup.arrival_timestamp,
+          duration_minutes: totalDuration,
+          walking_distance_meters: totalWalkingDistance > 0 ? totalWalkingDistance : undefined,
+          vehicle: firstInGroup.vehicle,
+          delay: firstInGroup.delay, // Use delay from first segment in group
+        });
+      }
+      
+      // Start new group
+      currentGroup = [seg];
+      currentType = seg.type;
+    } else {
+      // Add to current group
+      currentGroup.push(seg);
+    }
+  });
+  
+  // Don't forget the last group
+  if (currentGroup.length > 0) {
+    const firstInGroup = currentGroup[0];
+    const lastInGroup = currentGroup[currentGroup.length - 1];
+    const totalDuration = currentGroup.reduce((sum, s) => sum + s.duration_minutes, 0);
+    const totalWalkingDistance = currentGroup.reduce((sum, s) => sum + (s.walking_distance_meters || 0), 0);
+    
+    groupedSegments.push({
+      segment_id: firstInGroup.segment_id,
+      type: firstInGroup.type,
+      from_stop: firstInGroup.from_stop,
+      to_stop: lastInGroup.to_stop,
+      departure_timestamp: firstInGroup.departure_timestamp,
+      arrival_timestamp: lastInGroup.arrival_timestamp,
+      duration_minutes: totalDuration,
+      walking_distance_meters: totalWalkingDistance > 0 ? totalWalkingDistance : undefined,
+      vehicle: firstInGroup.vehicle,
+      delay: firstInGroup.delay, // Use delay from first segment in group
+    });
+  }
+  
+  return groupedSegments;
+};
 
 // ===== KOMPONENTY =====
 
@@ -391,6 +463,9 @@ const CalculatedRouteView: React.FC<CalculatedRouteViewProps> = ({
   onBack,
   colors,
 }) => {
+  // Group consecutive segments of the same type to avoid showing each segment separately
+  const groupedSegments = groupConsecutiveSegments(calculatedRoute.route_segments);
+  
   return (
     <ScrollView style={styles.detailsContainer}>
       <TouchableOpacity
@@ -448,7 +523,7 @@ const CalculatedRouteView: React.FC<CalculatedRouteViewProps> = ({
           <ThemedText style={styles.sectionTitle}>Trasa krok po kroku</ThemedText>
         </View>
 
-        {calculatedRoute.route_segments.map((segment, index) => (
+        {groupedSegments.map((segment, index) => (
           <View key={segment.segment_id} style={styles.segmentContainer}>
             {segment.type === "walking" ? (
               <View style={styles.walkingSegment}>
@@ -533,7 +608,7 @@ const CalculatedRouteView: React.FC<CalculatedRouteViewProps> = ({
                 )}
               </View>
             )}
-            {index < calculatedRoute.route_segments.length - 1 && (
+            {index < groupedSegments.length - 1 && (
               <View style={styles.segmentDivider}>
                 <MaterialIcons name="arrow-downward" size={20} color={colors.icon} />
               </View>

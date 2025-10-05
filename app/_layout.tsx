@@ -60,6 +60,7 @@ export default function RootLayout() {
               name="modal" 
               options={{ 
                 title: 'Planuj Trasę',
+                headerBackTitle: 'Powrót',
               }} 
             />
           </Stack>
