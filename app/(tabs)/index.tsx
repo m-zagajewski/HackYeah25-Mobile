@@ -158,8 +158,8 @@ export default function HomeScreen() {
               </View>
             </View>
           </TouchableOpacity>
-          {/* Current/Next Journey - Takes remaining space */}
-          <View style={styles.journeyContainer}>
+
+          <TouchableOpacity style={styles.journeyContainer} onPress={() => router.push('/live-track')} activeOpacity={0.9}>
             {currentJourney ? (
               <View
                 style={[styles.journeyCard, { backgroundColor: colors.card }]}
@@ -306,25 +306,6 @@ export default function HomeScreen() {
                   <TouchableOpacity
                     style={[
                       styles.actionBtn,
-                      { backgroundColor: colors.secondary },
-                    ]}
-                    onPress={() => {
-                      router.push("/live-track");
-                    }}
-                  >
-                    <IconSymbol
-                      size={20}
-                      name="location.circle.fill"
-                      color="#fff"
-                    />
-                    <ThemedText style={styles.actionBtnText}>
-                      Śledzenie Na Żywo
-                    </ThemedText>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[
-                      styles.actionBtn,
                       { backgroundColor: colors.warning },
                     ]}
                     onPress={() => {
@@ -355,7 +336,7 @@ export default function HomeScreen() {
                 </ThemedText>
               </View>
             )}
-          </View>
+          </TouchableOpacity>
         </View>
       </ThemedView>
     </ImageBackground>

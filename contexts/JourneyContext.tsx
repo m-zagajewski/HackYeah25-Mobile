@@ -297,10 +297,14 @@ export const JourneyProvider: React.FC<{ children: ReactNode }> = ({ children })
       const now = departureDate || new Date();
       const departureTimestamp = Math.floor(now.getTime() / 1000);
       
-      const url = `${API_BASE_URL}/plan_route?start_lat=${startLat}&start_lon=${startLon}&end_lat=${endLat}&end_lon=${endLon}&departure_timestamp=${departureTimestamp}`;
+      console.log('📍 Route parameters:');
+      console.log('  Start:', { lat: startLat, lon: startLon });
+      console.log('  End:', { lat: endLat, lon: endLon });
+      console.log('  Departure:', now.toLocaleString('pl-PL'), '(timestamp:', departureTimestamp, ')');
+      
+      const url = `${API_BASE_URL}/plan_route?start_lat=${startLat}&start_lon=${startLon}&end_lat=${endLat}&end_lon=${endLon}&timestamp=${departureTimestamp}`;
       
       console.log('🚀 Fetching route from:', url);
-      console.log('⏱️ Departure timestamp:', departureTimestamp, '(', now.toLocaleString('pl-PL'), ')');
       
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), 60000);
@@ -318,6 +322,22 @@ export const JourneyProvider: React.FC<{ children: ReactNode }> = ({ children })
         
         if (!response.ok) {
           console.error('❌ HTTP error! status:', response.status);
+          
+          // Try to get error details from response
+          try {
+            const errorData = await response.json();
+            console.error('❌ Error details:', JSON.stringify(errorData, null, 2));
+            
+            if (response.status === 422) {
+              // Validation error - show specific message
+              const errorMessage = errorData.detail || errorData.message || 'Nieprawidłowe parametry wyszukiwania';
+              throw new Error(errorMessage);
+            }
+          } catch (jsonError) {
+            // If we can't parse error as JSON, just throw status
+            console.error('❌ Could not parse error response:', jsonError);
+          }
+          
           throw new Error(`HTTP error! status: ${response.status}`);
         }
         

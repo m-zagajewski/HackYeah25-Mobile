@@ -460,14 +460,7 @@ export default function LiveTrackScreen() {
               {stops.map((stop, index) => (
                 <View 
                   key={stop.id} 
-                  style={[
-                    styles.stopItem,
-                    stop.status === "current" && {
-                      borderLeftWidth: 3,
-                      borderLeftColor: colors.primary,
-                      paddingLeft: 5,
-                    }
-                  ]}
+                  style={styles.stopItem}
                   ref={(ref) => {
                     stopRefs.current[stop.id] = ref;
                   }}
