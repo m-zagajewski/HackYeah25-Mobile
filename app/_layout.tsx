@@ -1,30 +1,34 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
+import {
+  DarkTheme,
+  DefaultTheme,
+  ThemeProvider,
+} from "@react-navigation/native";
+import { useFonts } from "expo-font";
+import { Stack } from "expo-router";
+import * as SplashScreen from "expo-splash-screen";
+import { StatusBar } from "expo-status-bar";
+import { useEffect } from "react";
+import "react-native-reanimated";
 
-import { JourneyProvider } from '@/contexts/JourneyContext';
-import { NotificationProvider } from '@/contexts/NotificationContext';
-import { useColorScheme } from '@/hooks/use-color-scheme';
+import { JourneyProvider } from "@/contexts/JourneyContext";
+import { NotificationProvider } from "@/contexts/NotificationContext";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export const unstable_settings = {
-  anchor: '(tabs)',
+  anchor: "(tabs)",
 };
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
-  
+
   const [loaded] = useFonts({
-    'Poppins-Regular': require('../assets/fonts/Poppins-Regular.ttf'),
-    'Poppins-Medium': require('../assets/fonts/Poppins-Medium.ttf'),
-    'Poppins-SemiBold': require('../assets/fonts/Poppins-SemiBold.ttf'),
-    'Poppins-Bold': require('../assets/fonts/Poppins-Bold.ttf'),
+    "Poppins-Regular": require("../assets/fonts/Poppins-Regular.ttf"),
+    "Poppins-Medium": require("../assets/fonts/Poppins-Medium.ttf"),
+    "Poppins-SemiBold": require("../assets/fonts/Poppins-SemiBold.ttf"),
+    "Poppins-Bold": require("../assets/fonts/Poppins-Bold.ttf"),
   });
 
   useEffect(() => {
@@ -40,28 +44,31 @@ export default function RootLayout() {
   return (
     <NotificationProvider>
       <JourneyProvider>
-        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+        <ThemeProvider
+          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+        >
           <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-            <Stack.Screen 
-              name="live-track" 
-              options={{ 
-                title: 'Twoja Podróż',
-                headerBackTitle: 'Powrót',
-              }} 
+            <Stack.Screen
+              name="live-track"
+              options={{
+                title: "Twoja Podróż",
+                headerBackTitle: "Powrót",
+              }}
             />
-            <Stack.Screen 
-              name="report-issue" 
-              options={{ 
-                title: 'Zgłoś Problem',
-              }} 
+            <Stack.Screen
+              name="report-issue"
+              options={{
+                title: "Zgłoś Problem",
+                headerBackTitle: "Powrót",
+              }}
             />
-            <Stack.Screen 
-              name="modal" 
-              options={{ 
-                title: 'Planuj Trasę',
-                headerBackTitle: 'Powrót',
-              }} 
+            <Stack.Screen
+              name="modal"
+              options={{
+                title: "Planuj Trasę",
+                headerBackTitle: "Powrót",
+              }}
             />
           </Stack>
           <StatusBar style="auto" />

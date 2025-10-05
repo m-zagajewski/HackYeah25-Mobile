@@ -26,6 +26,20 @@ interface LocationSuggestion {
   lon: number;
 }
 
+// Function to get icon for location type
+const getLocationIcon = (locationName: string): string => {
+  const name = locationName.toLowerCase();
+  if (name.includes('dworzec') || name.includes('główny')) return 'train';
+  if (name.includes('arena') || name.includes('tauron')) return 'stadium';
+  if (name.includes('rynek') || name.includes('główny')) return 'account-balance';
+  if (name.includes('p+r') || name.includes('maki')) return 'local-parking';
+  if (name.includes('kazimierz')) return 'church';
+  if (name.includes('nowa huta')) return 'factory';
+  if (name.includes('salwator')) return 'nature';
+  if (name.includes('lagiewniki')) return 'church';
+  return 'location-city'; // default icon
+};
+
 const KRAKOW_LOCATIONS: LocationSuggestion[] = [
   { name: 'Czerwone Maki P+R', lat: 50.014623, lon: 19.888062 },
   { name: 'Tauron Arena Kraków', lat: 50.067366, lon: 19.990079 },
@@ -290,15 +304,41 @@ export default function RouteSelectionModal() {
           {/* Suggestions dropdown */}
           {activeField === 'from' && fromSuggestions.length > 0 && (
             <View style={[styles.suggestionsContainer, { backgroundColor: colors.card }]}>
+              <View style={styles.suggestionsHeader}>
+                <MaterialIcons name="location-on" size={18} color={colors.primary} />
+                <ThemedText style={[styles.suggestionsHeaderText, { color: colors.primary }]}>
+                  Wybierz lokalizację startową
+                </ThemedText>
+              </View>
               {fromSuggestions.map((suggestion, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
+                  style={[
+                    styles.suggestionItem, 
+                    { 
+                      borderBottomColor: colors.border,
+                      borderBottomWidth: index < fromSuggestions.length - 1 ? 1 : 0 
+                    }
+                  ]}
                   onPress={() => selectFromSuggestion(suggestion)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.6}
                 >
-                  <MaterialIcons name="place" size={20} color={colors.icon} />
-                  <ThemedText style={styles.suggestionText}>{suggestion.name}</ThemedText>
+                  <View style={[styles.suggestionIcon, { backgroundColor: colors.primary + '15' }]}>
+                    <MaterialIcons 
+                      name={getLocationIcon(suggestion.name) as any} 
+                      size={18} 
+                      color={"#fff"} 
+                    />
+                  </View>
+                  <View style={styles.suggestionContent}>
+                    <ThemedText style={[styles.suggestionText, { color: colors.text }]}>
+                      {suggestion.name}
+                    </ThemedText>
+                    <ThemedText style={[styles.suggestionSubtext, { color: colors.icon }]}>
+                      Kraków
+                    </ThemedText>
+                  </View>
+                  <MaterialIcons name="arrow-forward-ios" size={16} color={colors.icon} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -306,15 +346,41 @@ export default function RouteSelectionModal() {
 
           {activeField === 'to' && toSuggestions.length > 0 && (
             <View style={[styles.suggestionsContainer, { backgroundColor: colors.card }]}>
+              <View style={styles.suggestionsHeader}>
+                <MaterialIcons name="place" size={18} color={colors.secondary} />
+                <ThemedText style={[styles.suggestionsHeaderText, { color: colors.secondary }]}>
+                  Wybierz miejsce docelowe
+                </ThemedText>
+              </View>
               {toSuggestions.map((suggestion, index) => (
                 <TouchableOpacity
                   key={index}
-                  style={[styles.suggestionItem, { borderBottomColor: colors.border }]}
+                  style={[
+                    styles.suggestionItem, 
+                    { 
+                      borderBottomColor: colors.border,
+                      borderBottomWidth: index < toSuggestions.length - 1 ? 1 : 0 
+                    }
+                  ]}
                   onPress={() => selectToSuggestion(suggestion)}
-                  activeOpacity={0.7}
+                  activeOpacity={0.6}
                 >
-                  <MaterialIcons name="place" size={20} color={colors.icon} />
-                  <ThemedText style={styles.suggestionText}>{suggestion.name}</ThemedText>
+                  <View style={[styles.suggestionIcon, { backgroundColor: colors.secondary + '15' }]}>
+                    <MaterialIcons 
+                      name={getLocationIcon(suggestion.name) as any} 
+                      size={18} 
+                      color={"#fff"} 
+                    />
+                  </View>
+                  <View style={styles.suggestionContent}>
+                    <ThemedText style={[styles.suggestionText, { color: colors.text }]}>
+                      {suggestion.name}
+                    </ThemedText>
+                    <ThemedText style={[styles.suggestionSubtext, { color: colors.icon }]}>
+                      Kraków
+                    </ThemedText>
+                  </View>
+                  <MaterialIcons name="arrow-forward-ios" size={16} color={colors.icon} />
                 </TouchableOpacity>
               ))}
             </View>
@@ -658,15 +724,29 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   suggestionsContainer: {
-    borderRadius: 12,
+    borderRadius: 16,
     marginHorizontal: 16,
     marginBottom: 16,
-    maxHeight: 250,
+    maxHeight: 300,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 6,
+    overflow: 'hidden',
+  },
+  suggestionsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(0,0,0,0.05)',
+  },
+  suggestionsHeaderText: {
+    fontSize: 14,
+    fontFamily: 'Poppins-SemiBold',
   },
   suggestionItem: {
     flexDirection: 'row',
@@ -674,13 +754,27 @@ const styles = StyleSheet.create({
     gap: 12,
     paddingVertical: 16,
     paddingHorizontal: 16,
-    borderBottomWidth: 1,
-    minHeight: 56,
+    minHeight: 64,
+  },
+  suggestionIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  suggestionContent: {
+    flex: 1,
+    gap: 2,
   },
   suggestionText: {
-    fontSize: 15,
+    fontSize: 16,
+    fontFamily: 'Poppins-Medium',
+  },
+  suggestionSubtext: {
+    fontSize: 13,
     fontFamily: 'Poppins-Regular',
-    flex: 1,
+    opacity: 0.7,
   },
   searchInputWrapper: {
     flexDirection: 'row',
