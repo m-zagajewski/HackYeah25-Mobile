@@ -46,14 +46,14 @@ export default function RootLayout() {
             <Stack.Screen 
               name="live-track" 
               options={{ 
-                title: 'Live Tracking',
-                headerBackTitle: 'Back',
+                title: 'Twoja Podróż',
+                headerBackTitle: 'Powrót',
               }} 
             />
             <Stack.Screen 
               name="report-issue" 
               options={{ 
-                title: 'Report Issue',
+                title: 'Zgłoś Problem',
               }} 
             />
             <Stack.Screen 
