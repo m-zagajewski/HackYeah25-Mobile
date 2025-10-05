@@ -82,6 +82,7 @@ export default function ReportIssueScreen() {
     }
 
     if (!currentJourney.vehicleUuid || !currentJourney.stops || currentJourney.currentStopIndex === undefined) {
+      console.log('Invalid journey data:', currentJourney);
       Alert.alert("Błąd", "Brak wymaganych danych o podróży");
       return;
     }

@@ -7,6 +7,7 @@ import { useEffect } from 'react';
 import 'react-native-reanimated';
 
 import { JourneyProvider } from '@/contexts/JourneyContext';
+import { NotificationProvider } from '@/contexts/NotificationContext';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -37,32 +38,34 @@ export default function RootLayout() {
   }
 
   return (
-    <JourneyProvider>
-      <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-        <Stack>
-          <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-          <Stack.Screen 
-            name="live-track" 
-            options={{ 
-              title: 'Live Tracking',
-              headerBackTitle: 'Back',
-            }} 
-          />
-          <Stack.Screen 
-            name="report-issue" 
-            options={{ 
-              title: 'Report Issue',
-            }} 
-          />
-          <Stack.Screen 
-            name="modal" 
-            options={{ 
-              title: 'Planuj Trasę',
-            }} 
-          />
-        </Stack>
-        <StatusBar style="auto" />
-      </ThemeProvider>
-    </JourneyProvider>
+    <NotificationProvider>
+      <JourneyProvider>
+        <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
+          <Stack>
+            <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+            <Stack.Screen 
+              name="live-track" 
+              options={{ 
+                title: 'Live Tracking',
+                headerBackTitle: 'Back',
+              }} 
+            />
+            <Stack.Screen 
+              name="report-issue" 
+              options={{ 
+                title: 'Report Issue',
+              }} 
+            />
+            <Stack.Screen 
+              name="modal" 
+              options={{ 
+                title: 'Planuj Trasę',
+              }} 
+            />
+          </Stack>
+          <StatusBar style="auto" />
+        </ThemeProvider>
+      </JourneyProvider>
+    </NotificationProvider>
   );
 }

@@ -10,7 +10,10 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.beaugarr.journeyRadar"
+      "bundleIdentifier": "com.beaugarr.journeyRadar",
+      "infoPlist": {
+        "UIBackgroundModes": ["remote-notification"]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -23,9 +26,11 @@
       "predictiveBackGestureEnabled": false,
       "permissions": [
         "android.permission.ACCESS_COARSE_LOCATION",
-        "android.permission.ACCESS_FINE_LOCATION"
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.POST_NOTIFICATIONS"
       ],
-      "package": "com.beaugarr.journeyRadar"
+      "package": "com.beaugarr.journeyRadar",
+      "useNextNotificationsApi": true
     },
     "web": {
       "output": "static",
@@ -50,6 +55,16 @@
         {
           "requestLocationPermission": true,
           "locationPermission": "Allow $(PRODUCT_NAME) to access your location for real-time journey tracking"
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/images/icon.png",
+          "color": "#3B82F6",
+          "sounds": [],
+          "iosDisplayInForeground": true,
+          "mode": "production"
         }
       ]
     ],

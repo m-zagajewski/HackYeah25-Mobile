@@ -3,6 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { Journey, useJourney } from "@/contexts/JourneyContext";
+import { useNotifications } from "@/contexts/NotificationContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
@@ -22,6 +23,7 @@ export default function HomeScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
   const { currentJourney } = useJourney();
+  const { expoPushToken, isRegistered, sendTestNotification } = useNotifications();
 
   const [fromLocation, setFromLocation] = useState("");
   const [toLocation, setToLocation] = useState("");
@@ -334,6 +336,29 @@ export default function HomeScreen() {
                 <ThemedText style={styles.emptySubtitle}>
                   Wyszukaj połączenia powyżej
                 </ThemedText>
+                
+                {/* Notification Test Button - For Development */}
+                {__DEV__ && (
+                  <View style={styles.notificationTest}>
+                    <ThemedText style={[styles.notificationStatus, { color: colors.icon }]}>
+                      Push Token: {isRegistered ? '✅ Zarejestrowany' : '❌ Niezarejestrowany'}
+                    </ThemedText>
+                    {expoPushToken && (
+                      <ThemedText style={[styles.notificationToken, { color: colors.icon }]} numberOfLines={1}>
+                        {expoPushToken.substring(0, 30)}...
+                      </ThemedText>
+                    )}
+                    <TouchableOpacity
+                      style={[styles.testButton, { backgroundColor: colors.primary }]}
+                      onPress={sendTestNotification}
+                    >
+                      <MaterialIcons name="notifications" size={16} color="#fff" />
+                      <ThemedText style={styles.testButtonText}>
+                        Testuj Powiadomienie
+                      </ThemedText>
+                    </TouchableOpacity>
+                  </View>
+                )}
               </View>
             )}
           </TouchableOpacity>
@@ -632,5 +657,37 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 15,
     fontFamily: "Poppins-Bold",
+  },
+  notificationTest: {
+    marginTop: 24,
+    paddingTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.1)',
+    alignItems: "center",
+    gap: 8,
+    width: '100%',
+  },
+  notificationStatus: {
+    fontSize: 12,
+    fontFamily: "Poppins-Medium",
+  },
+  notificationToken: {
+    fontSize: 10,
+    fontFamily: "Poppins-Regular",
+    opacity: 0.5,
+  },
+  testButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 8,
+    gap: 6,
+    marginTop: 8,
+  },
+  testButtonText: {
+    color: "#fff",
+    fontSize: 12,
+    fontFamily: "Poppins-SemiBold",
   },
 });
