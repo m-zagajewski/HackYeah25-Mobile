@@ -152,10 +152,9 @@ export default function RouteSelectionModal() {
         toCoords.lon,
         departureTime
       );
-      console.log('📥 Fetched route result:', fetchedRoute);
       
       if (fetchedRoute) {
-        console.log('✅ Setting route state with:', fetchedRoute);
+        // console.log('✅ Setting route state with:', fetchedRoute);
         setRoute(fetchedRoute);
       } else {
         console.log('⚠️ fetchedRoute is null or undefined');

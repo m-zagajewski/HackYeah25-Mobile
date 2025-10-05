@@ -6,17 +6,17 @@ import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import React, { useEffect, useState } from "react";
 import {
-  ActivityIndicator,
-  Alert,
-  Image,
-  ImageBackground,
-  RefreshControl,
-  SafeAreaView,
-  ScrollView,
-  StatusBar,
-  StyleSheet,
-  TouchableOpacity,
-  View,
+    ActivityIndicator,
+    Alert,
+    Image,
+    ImageBackground,
+    RefreshControl,
+    SafeAreaView,
+    ScrollView,
+    StatusBar,
+    StyleSheet,
+    TouchableOpacity,
+    View,
 } from "react-native";
 
 // ===== TYPY =====
@@ -243,7 +243,7 @@ const RouteDetailsView: React.FC<RouteDetailsViewProps> = ({
         style={[styles.backButton, { backgroundColor: colors.card }]}
         activeOpacity={0.7}
       >
-        <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+        <IconSymbol name="chevron.left" size={24} color={colors.text} />
         <ThemedText style={styles.backButtonText}>Powrót</ThemedText>
       </TouchableOpacity>
 
@@ -398,7 +398,7 @@ const CalculatedRouteView: React.FC<CalculatedRouteViewProps> = ({
         style={[styles.backButton, { backgroundColor: colors.card }]}
         activeOpacity={0.7}
       >
-        <MaterialIcons name="arrow-back" size={24} color={colors.text} />
+        <IconSymbol name="chevron.left" size={24} color={colors.text} />
         <ThemedText style={styles.backButtonText}>Powrót do szczegółów</ThemedText>
       </TouchableOpacity>
 

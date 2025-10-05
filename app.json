@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "journeyRadar",
-    "slug": "journeyRadar",
+    "slug": "journeyradar",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
@@ -12,7 +12,11 @@
       "supportsTablet": true,
       "bundleIdentifier": "com.beaugarr.journeyRadar",
       "infoPlist": {
-        "UIBackgroundModes": ["remote-notification"]
+        "UIBackgroundModes": [
+          "remote-notification",
+          "remote-notification"
+        ],
+        "ITSAppUsesNonExemptEncryption": false
       }
     },
     "android": {
@@ -71,6 +75,15 @@
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "bfc44068-114e-4b8e-9f66-9aef7ac9c941"
+      }
+    },
+    "owner": "beaugarr"
   }
 }
