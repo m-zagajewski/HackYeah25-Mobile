@@ -65,17 +65,15 @@ async function registerForPushNotificationsAsync(): Promise<string | null> {
     }
     
     try {
-      const projectId = Constants.expoConfig?.extra?.eas?.projectId ?? Constants.easConfig?.projectId;
-      
-      if (!projectId) {
-        console.warn('⚠️ Project ID not found. Push notifications may not work.');
-      }
+      const projectId = "921ed6c0-9d2b-494a-a5dd-d649828f98da";
       
       token = (
         await Notifications.getExpoPushTokenAsync({
-          projectId: projectId,
+          projectId,
         })
       ).data;
+
+      console.log("Token: ", token);
       
       console.log('📱 Expo Push Token:', token);
     } catch (error) {

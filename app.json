@@ -10,7 +10,7 @@
     "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.beaugarr.journeyRadar",
+      "bundleIdentifier": "com.mzagajewski.journeyRadar",
       "infoPlist": {
         "UIBackgroundModes": [
           "remote-notification",
@@ -81,9 +81,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "bfc44068-114e-4b8e-9f66-9aef7ac9c941"
+        "projectId": "921ed6c0-9d2b-494a-a5dd-d649828f98da"
       }
     },
-    "owner": "beaugarr"
+    "owner": "spryte-dev"
   }
 }
