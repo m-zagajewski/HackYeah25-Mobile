@@ -2,6 +2,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useJourney } from "@/contexts/JourneyContext";
+import { generateRewardPoints, usePoints } from "@/contexts/PointsContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
@@ -39,6 +40,7 @@ export default function ReportIssueScreen() {
   const colors = Colors[colorScheme ?? "light"];
   const router = useRouter();
   const { currentJourney } = useJourney();
+  const { addPoints } = usePoints();
 
   const [selectedIssue, setSelectedIssue] = useState<string | null>(null);
   const [description, setDescription] = useState("");
@@ -147,10 +149,14 @@ export default function ReportIssueScreen() {
       const data = await response.json();
       console.log('Delay report response:', data);
 
+      // Award points for reporting
+      const rewardPoints = generateRewardPoints();
+      addPoints(rewardPoints);
+
       setIsSubmitting(false);
       Alert.alert(
         "Zgłoszenie Wysłane! ✅",
-        "Dziękujemy za opinię. Zajmiemy się tym problemem tak szybko, jak to możliwe.",
+        `Dziękujemy za opinię. Zajmiemy się tym problemem tak szybko, jak to możliwe.\n\n🎉 Otrzymujesz ${rewardPoints} punktów za zgłoszenie!`,
         [
           {
             text: "OK",

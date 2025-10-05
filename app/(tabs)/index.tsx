@@ -4,6 +4,7 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { Journey, useJourney } from "@/contexts/JourneyContext";
 import { useNotifications } from "@/contexts/NotificationContext";
+import { usePoints } from "@/contexts/PointsContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useRouter } from "expo-router";
@@ -24,6 +25,7 @@ export default function HomeScreen() {
   const router = useRouter();
   const { currentJourney } = useJourney();
   const { expoPushToken, isRegistered, sendTestNotification } = useNotifications();
+  const { userName, userPoints } = usePoints();
 
   const [fromLocation, setFromLocation] = useState("");
   const [toLocation, setToLocation] = useState("");
@@ -114,6 +116,14 @@ export default function HomeScreen() {
                 Małopolska Innowacyjna
               </ThemedText>
             </View>
+          </View>
+          
+          {/* User Points Display */}
+          <View style={styles.userPointsContainer}>
+            <MaterialIcons name="stars" size={20} color="#FFD700" />
+            <ThemedText style={styles.userPointsText}>
+              Witaj, {userName}! Masz {userPoints} punktów
+            </ThemedText>
           </View>
         </View>
 
@@ -352,29 +362,6 @@ export default function HomeScreen() {
                 <ThemedText style={styles.emptySubtitle}>
                   Wyszukaj połączenia powyżej
                 </ThemedText>
-                
-                {/* Notification Test Button - For Development */}
-                {__DEV__ && (
-                  <View style={styles.notificationTest}>
-                    <ThemedText style={[styles.notificationStatus, { color: colors.icon }]}>
-                      Push Token: {isRegistered ? '✅ Zarejestrowany' : '❌ Niezarejestrowany'}
-                    </ThemedText>
-                    {expoPushToken && (
-                      <ThemedText style={[styles.notificationToken, { color: colors.icon }]} numberOfLines={1}>
-                        {expoPushToken.substring(0, 30)}...
-                      </ThemedText>
-                    )}
-                    <TouchableOpacity
-                      style={[styles.testButton, { backgroundColor: colors.primary }]}
-                      onPress={sendTestNotification}
-                    >
-                      <MaterialIcons name="notifications" size={16} color="#fff" />
-                      <ThemedText style={styles.testButtonText}>
-                        Testuj Powiadomienie
-                      </ThemedText>
-                    </TouchableOpacity>
-                  </View>
-                )}
               </View>
             )}
           </TouchableOpacity>
@@ -710,5 +697,21 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 12,
     fontFamily: "Poppins-SemiBold",
+  },
+  userPointsContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginTop: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    backgroundColor: "rgba(255, 255, 255, 0.15)",
+    borderRadius: 20,
+    alignSelf: "flex-start",
+  },
+  userPointsText: {
+    fontSize: 14,
+    fontFamily: "Poppins-Medium",
+    color: "#fff",
   },
 });

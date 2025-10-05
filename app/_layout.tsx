@@ -12,6 +12,7 @@ import "react-native-reanimated";
 
 import { JourneyProvider } from "@/contexts/JourneyContext";
 import { NotificationProvider } from "@/contexts/NotificationContext";
+import { PointsProvider } from "@/contexts/PointsContext";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -42,12 +43,13 @@ export default function RootLayout() {
   }
 
   return (
-    <NotificationProvider>
-      <JourneyProvider>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <Stack>
+    <PointsProvider>
+      <NotificationProvider>
+        <JourneyProvider>
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <Stack>
             <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
             <Stack.Screen
               name="live-track"
@@ -75,5 +77,6 @@ export default function RootLayout() {
         </ThemeProvider>
       </JourneyProvider>
     </NotificationProvider>
+    </PointsProvider>
   );
 }
