@@ -1,8 +1,8 @@
-import React, { createContext, useContext, useState, useEffect, useRef, ReactNode } from 'react';
+import Constants from 'expo-constants';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
-import { Platform, Alert } from 'react-native';
-import Constants from 'expo-constants';
+import React, { createContext, ReactNode, useContext, useEffect, useRef, useState } from 'react';
+import { Alert, Platform } from 'react-native';
 
 // Configure notification handler
 Notifications.setNotificationHandler({
