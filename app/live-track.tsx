@@ -178,24 +178,27 @@ export default function LiveTrackScreen() {
         latitude: userLocation.coords.latitude,
         longitude: userLocation.coords.longitude,
       },
-      title: "Twoja Lokalizacja",
-      color: "#4CAF50",
+      title: "📍 Twoja Lokalizacja",
+      color: "#2196F3", // Blue for user location (Android)
+      tintColor: "#2196F3", // Blue for user location (iOS)
     });
   }
   if (startCoordinate) {
     mapMarkers.push({
       id: "start",
       coordinates: startCoordinate,
-      title: "Start",
-      color: "#2196F3",
+      title: "🟢 Start",
+      color: "#4CAF50", // Green for start (Android)
+      tintColor: "#4CAF50", // Green for start (iOS)
     });
   }
   if (endCoordinate) {
     mapMarkers.push({
       id: "end",
       coordinates: endCoordinate,
-      title: "Cel",
-      color: "#F44336",
+      title: "🔴 Cel",
+      color: "#FF0000", // Bright Red for end (Android)
+      tintColor: "#FF0000", // Bright Red for end (iOS)
     });
   }
   
