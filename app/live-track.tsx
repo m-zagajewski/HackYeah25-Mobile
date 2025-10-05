@@ -40,6 +40,98 @@ export default function LiveTrackScreen() {
   const startCoordinate = routeGeometry.length > 0 ? routeGeometry[0] : null;
   const endCoordinate = routeGeometry.length > 0 ? routeGeometry[routeGeometry.length - 1] : null;
 
+  // Create transfer markers from segments
+  const createTransferMarkers = () => {
+    if (!currentJourney?.segments || currentJourney.segments.length < 2) return [];
+    
+    const transferMarkers = [];
+    const segments = currentJourney.segments;
+    
+    // Colors for transfer markers - cycle through different colors
+    const transferColors = ['#FF6B00', '#9C27B0', '#FF5722', '#E91E63', '#673AB7'];
+    
+    // Add marker at each transfer point (where one segment ends and another begins)
+    for (let i = 0; i < segments.length - 1; i++) {
+      const currentSegment = segments[i];
+      const nextSegment = segments[i + 1];
+      
+      // The transfer point is where current segment ends / next segment starts
+      // We'll use the toStop of current segment (or fromStop of next segment - should be the same)
+      const transferStop = currentSegment.toStop;
+      
+      // Try to find coordinates for this transfer point
+      // We'll estimate based on route geometry distribution
+      const pointsPerSegment = Math.floor(routeGeometry.length / segments.length);
+      const transferPointIndex = Math.min(
+        (i + 1) * pointsPerSegment,
+        routeGeometry.length - 1
+      );
+      
+      if (transferPointIndex < routeGeometry.length) {
+        transferMarkers.push({
+          id: `transfer-${i}`,
+          coordinates: routeGeometry[transferPointIndex],
+          title: `Przesiadka: ${transferStop.name}`,
+          color: transferColors[i % transferColors.length],
+        });
+      }
+    }
+    
+    return transferMarkers;
+  };
+
+  const transferMarkers = createTransferMarkers();
+
+  // Create colored polylines based on segment types
+  const createSegmentPolylines = () => {
+    if (!currentJourney?.segments || routeGeometry.length === 0) {
+      // Fallback to single polyline if no segments
+      return routeGeometry.length > 0 ? [{
+        id: "route",
+        coordinates: routeGeometry,
+        color: "#2196F3",
+        width: 5,
+      }] : [];
+    }
+    
+    const polylines = [];
+    const segments = currentJourney.segments;
+    const totalPoints = routeGeometry.length;
+    const pointsPerSegment = Math.floor(totalPoints / segments.length);
+    
+    let startIdx = 0;
+    
+    for (let i = 0; i < segments.length; i++) {
+      const segment = segments[i];
+      const isLastSegment = i === segments.length - 1;
+      
+      // Calculate end index for this segment
+      const endIdx = isLastSegment ? totalPoints : Math.min(startIdx + pointsPerSegment, totalPoints);
+      
+      if (endIdx > startIdx) {
+        const segmentCoords = routeGeometry.slice(startIdx, endIdx);
+        
+        // Different colors for walking vs transit
+        // Transit (tramwaje, autobusy) - colors.primary
+        // Walking (chodzenie) - blue
+        const color = segment.type === 'walking' ? '#2196F3' : colors.primary;
+        
+        polylines.push({
+          id: `segment-${i}`,
+          coordinates: segmentCoords,
+          color: color,
+          width: 5,
+        });
+        
+        startIdx = endIdx - 1; // Overlap by one point for continuity
+      }
+    }
+    
+    return polylines;
+  };
+
+  const segmentPolylines = createSegmentPolylines();
+
   // Calculate center point of the route for better map positioning
   const routeCenter = (() => {
     if (routeGeometry.length === 0) {
@@ -106,6 +198,9 @@ export default function LiveTrackScreen() {
       color: "#F44336",
     });
   }
+  
+  // Add transfer markers
+  transferMarkers.forEach(marker => mapMarkers.push(marker));
 
   // Calculate journey progress based on time
   const calculateJourneyProgress = (): number => {
@@ -196,18 +291,7 @@ export default function LiveTrackScreen() {
                     zoom: routeZoom,
                   }}
                   markers={mapMarkers}
-                  polylines={
-                    routeGeometry.length > 0
-                      ? [
-                          {
-                            id: "route",
-                            coordinates: routeGeometry,
-                            color: "#2196F3",
-                            width: 5,
-                          },
-                        ]
-                      : []
-                  }
+                  polylines={segmentPolylines}
                 />
               ) : (
                 <GoogleMaps.View
@@ -217,18 +301,7 @@ export default function LiveTrackScreen() {
                     zoom: routeZoom,
                   }}
                   markers={mapMarkers}
-                  polylines={
-                    routeGeometry.length > 0
-                      ? [
-                          {
-                            id: "route",
-                            coordinates: routeGeometry,
-                            color: "#2196F3",
-                            width: 5,
-                          },
-                        ]
-                      : []
-                  }
+                  polylines={segmentPolylines}
                 />
               ))}
 
@@ -266,18 +339,7 @@ export default function LiveTrackScreen() {
                     zoom: routeZoom,
                   }}
                   markers={mapMarkers}
-                  polylines={
-                    routeGeometry.length > 0
-                      ? [
-                          {
-                            id: "route",
-                            coordinates: routeGeometry, // [{ latitude, longitude }, ...]
-                            color: "#2196F3",
-                            width: 5,
-                          },
-                        ]
-                      : []
-                  }
+                  polylines={segmentPolylines}
                 />
               ) : (
                 <GoogleMaps.View
@@ -287,18 +349,7 @@ export default function LiveTrackScreen() {
                     zoom: routeZoom,
                   }}
                   markers={mapMarkers}
-                  polylines={
-                    routeGeometry.length > 0
-                      ? [
-                          {
-                            id: "route",
-                            coordinates: routeGeometry,
-                            color: "#2196F3",
-                            width: 5,
-                          },
-                        ]
-                      : []
-                  }
+                  polylines={segmentPolylines}
                 />
               ))}
 
