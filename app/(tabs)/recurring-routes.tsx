@@ -4,12 +4,17 @@ import { IconSymbol } from "@/components/ui/icon-symbol";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import * as Location from "expo-location";
+import { AppleMaps, GoogleMaps } from "expo-maps";
 import React, { useEffect, useState } from "react";
 import {
     ActivityIndicator,
     Alert,
+    Dimensions,
     Image,
     ImageBackground,
+    Modal,
+    Platform,
     RefreshControl,
     SafeAreaView,
     ScrollView,
@@ -106,6 +111,7 @@ interface CalculatedRoute {
     arrival_timestamp: number;
   };
   recommendations: string[];
+  detailed_geometry?: [number, number][]; // Array of [latitude, longitude] coordinates
 }
 
 // ===== API =====
@@ -455,6 +461,8 @@ interface CalculatedRouteViewProps {
   routeName: string;
   onBack: () => void;
   colors: any;
+  userLocation: Location.LocationObject | null;
+  onMapFullscreen: () => void;
 }
 
 const CalculatedRouteView: React.FC<CalculatedRouteViewProps> = ({
@@ -462,6 +470,8 @@ const CalculatedRouteView: React.FC<CalculatedRouteViewProps> = ({
   routeName,
   onBack,
   colors,
+  userLocation,
+  onMapFullscreen,
 }) => {
   // Group consecutive segments of the same type to avoid showing each segment separately
   const groupedSegments = groupConsecutiveSegments(calculatedRoute.route_segments);
@@ -516,6 +526,120 @@ const CalculatedRouteView: React.FC<CalculatedRouteViewProps> = ({
           )}
         </View>
       </View>
+
+      {/* Map Section */}
+      {userLocation && calculatedRoute.detailed_geometry && calculatedRoute.detailed_geometry.length > 0 && (
+        <View style={[styles.mapCard, { backgroundColor: colors.card }]}>
+          <TouchableOpacity
+            style={styles.mapHeader}
+            onPress={onMapFullscreen}
+            activeOpacity={0.7}
+          >
+            <View style={styles.mapHeaderLeft}>
+              <IconSymbol name="map" size={20} color={colors.tint} />
+              <ThemedText style={styles.sectionTitle}>Mapa Trasy</ThemedText>
+            </View>
+            <IconSymbol name="arrow.up.right.square" size={18} color={colors.text} />
+          </TouchableOpacity>
+          
+          <View style={styles.mapContainer}>
+            {Platform.OS === "ios" ? (
+              <AppleMaps.View
+                style={styles.routeMap}
+                cameraPosition={{
+                  coordinates: {
+                    latitude: calculatedRoute.detailed_geometry[Math.floor(calculatedRoute.detailed_geometry.length / 2)][0],
+                    longitude: calculatedRoute.detailed_geometry[Math.floor(calculatedRoute.detailed_geometry.length / 2)][1],
+                  },
+                  zoom: 13,
+                }}
+                markers={[
+                  {
+                    id: "user",
+                    coordinates: {
+                      latitude: userLocation.coords.latitude,
+                      longitude: userLocation.coords.longitude,
+                    },
+                    title: "📍 Twoja Lokalizacja",
+                    tintColor: "#2196F3",
+                  },
+                  {
+                    id: "start",
+                    coordinates: {
+                      latitude: calculatedRoute.detailed_geometry[0][0],
+                      longitude: calculatedRoute.detailed_geometry[0][1],
+                    },
+                    title: "🟢 Start",
+                    tintColor: "#4CAF50",
+                  },
+                  {
+                    id: "end",
+                    coordinates: {
+                      latitude: calculatedRoute.detailed_geometry[calculatedRoute.detailed_geometry.length - 1][0],
+                      longitude: calculatedRoute.detailed_geometry[calculatedRoute.detailed_geometry.length - 1][1],
+                    },
+                    title: "🔴 Cel",
+                    tintColor: "#FF0000",
+                  },
+                ]}
+                polylines={[
+                  {
+                    coordinates: calculatedRoute.detailed_geometry.map((coord: [number, number]) => ({
+                      latitude: coord[0],
+                      longitude: coord[1],
+                    })),
+                  },
+                ]}
+              />
+            ) : (
+              <GoogleMaps.View
+                style={styles.routeMap}
+                cameraPosition={{
+                  coordinates: {
+                    latitude: calculatedRoute.detailed_geometry[Math.floor(calculatedRoute.detailed_geometry.length / 2)][0],
+                    longitude: calculatedRoute.detailed_geometry[Math.floor(calculatedRoute.detailed_geometry.length / 2)][1],
+                  },
+                  zoom: 13,
+                }}
+                markers={[
+                  {
+                    id: "user",
+                    coordinates: {
+                      latitude: userLocation.coords.latitude,
+                      longitude: userLocation.coords.longitude,
+                    },
+                    title: "📍 Twoja Lokalizacja",
+                  },
+                  {
+                    id: "start",
+                    coordinates: {
+                      latitude: calculatedRoute.detailed_geometry[0][0],
+                      longitude: calculatedRoute.detailed_geometry[0][1],
+                    },
+                    title: "🟢 Start",
+                  },
+                  {
+                    id: "end",
+                    coordinates: {
+                      latitude: calculatedRoute.detailed_geometry[calculatedRoute.detailed_geometry.length - 1][0],
+                      longitude: calculatedRoute.detailed_geometry[calculatedRoute.detailed_geometry.length - 1][1],
+                    },
+                    title: "🔴 Cel",
+                  },
+                ]}
+                polylines={[
+                  {
+                    coordinates: calculatedRoute.detailed_geometry.map((coord: [number, number]) => ({
+                      latitude: coord[0],
+                      longitude: coord[1],
+                    })),
+                  },
+                ]}
+              />
+            )}
+          </View>
+        </View>
+      )}
 
       <View style={[styles.detailsCard, { backgroundColor: colors.card }]}>
         <View style={styles.detailsSection}>
@@ -649,6 +773,10 @@ export default function RecurringRoutesScreen() {
     null
   );
   const [calculatingRoute, setCalculatingRoute] = useState(false);
+  
+  // Map-related states
+  const [userLocation, setUserLocation] = useState<Location.LocationObject | null>(null);
+  const [isMapFullscreen, setIsMapFullscreen] = useState(false);
 
   const loadRoutes = async () => {
     try {
@@ -666,6 +794,36 @@ export default function RecurringRoutesScreen() {
 
   useEffect(() => {
     loadRoutes();
+  }, []);
+
+  // Get user location
+  useEffect(() => {
+    (async () => {
+      console.log('🔍 [Recurring Routes] Requesting location permission...');
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      console.log('📍 [Recurring Routes] Location permission status:', status);
+      
+      if (status === "granted") {
+        try {
+          console.log('📱 [Recurring Routes] Getting current position...');
+          const location = await Location.getCurrentPositionAsync({
+            accuracy: Location.Accuracy.Balanced,
+          });
+          console.log('✅ [Recurring Routes] Location received:', location.coords.latitude, location.coords.longitude);
+          setUserLocation(location);
+        } catch (error) {
+          console.warn('❌ [Recurring Routes] Error getting location:', error);
+          // Use fallback location in Kraków
+          const fallbackLocation = {
+            coords: {
+              latitude: 50.0614,
+              longitude: 19.9372,
+            },
+          } as Location.LocationObject;
+          setUserLocation(fallbackLocation);
+        }
+      }
+    })();
   }, []);
 
   const handleRoutePress = async (route: RecurringRoute) => {
@@ -753,6 +911,8 @@ export default function RecurringRoutesScreen() {
               routeName={selectedRoute.name}
               onBack={handleBackToDetails}
               colors={colors}
+              userLocation={userLocation}
+              onMapFullscreen={() => setIsMapFullscreen(true)}
             />
           ) : selectedRoute ? (
             <RouteDetailsView
@@ -1123,5 +1283,37 @@ const styles = StyleSheet.create({
     fontFamily: "Poppins-Regular",
     marginBottom: 6,
     lineHeight: 20,
+  },
+  // Map styles
+  mapCard: {
+    margin: 16,
+    borderRadius: 12,
+    overflow: "hidden",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  mapHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 16,
+  },
+  mapHeaderLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  mapContainer: {
+    height: 200,
+    margin: 16,
+    marginTop: 0,
+    borderRadius: 8,
+    overflow: "hidden",
+  },
+  routeMap: {
+    flex: 1,
   },
 });
