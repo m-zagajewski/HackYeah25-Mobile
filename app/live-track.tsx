@@ -19,12 +19,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-const route = [
-  { latitude: 50.0614, longitude: 19.9372 }, // Rynek Główny
-  { latitude: 50.0620, longitude: 19.9390 }, // w stronę ulicy Floriańskiej
-  { latitude: 50.0630, longitude: 19.9405 }, // przy Kościele Mariackim
-  { latitude: 50.0640, longitude: 19.9420 }, // w stronę Bramy Floriańskiej
-];
+
 const { width, height } = Dimensions.get("window");
 
 interface Stop {
@@ -49,6 +44,81 @@ export default function LiveTrackScreen() {
   const [locationPermission, setLocationPermission] = useState(false);
   const [isMapFullscreen, setIsMapFullscreen] = useState(false);
   const [visibleStopIndex, setVisibleStopIndex] = useState(0);
+
+  // Get route geometry from journey context
+  const routeGeometry = currentJourney?.routeGeometry || [];
+  console.log('🗺️ Route geometry in live-track:', routeGeometry.length, 'points');
+
+  // Get start and end coordinates for markers
+  const startCoordinate = routeGeometry.length > 0 ? routeGeometry[0] : null;
+  const endCoordinate = routeGeometry.length > 0 ? routeGeometry[routeGeometry.length - 1] : null;
+
+  // Calculate center point of the route for better map positioning
+  const routeCenter = (() => {
+    if (routeGeometry.length === 0) {
+      return userLocation ? {
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+      } : { latitude: 50.0614, longitude: 19.9372 };
+    }
+    
+    const latitudes = routeGeometry.map(coord => coord.latitude);
+    const longitudes = routeGeometry.map(coord => coord.longitude);
+    
+    return {
+      latitude: (Math.min(...latitudes) + Math.max(...latitudes)) / 2,
+      longitude: (Math.min(...longitudes) + Math.max(...longitudes)) / 2,
+    };
+  })();
+
+  // Calculate appropriate zoom level based on route bounds
+  const routeZoom = (() => {
+    if (routeGeometry.length < 2) return 13;
+    
+    const latitudes = routeGeometry.map(coord => coord.latitude);
+    const longitudes = routeGeometry.map(coord => coord.longitude);
+    
+    const latDiff = Math.max(...latitudes) - Math.min(...latitudes);
+    const lonDiff = Math.max(...longitudes) - Math.min(...longitudes);
+    const maxDiff = Math.max(latDiff, lonDiff);
+    
+    // Adjust zoom based on coordinate span
+    if (maxDiff > 0.1) return 11;
+    if (maxDiff > 0.05) return 12;
+    if (maxDiff > 0.02) return 13;
+    if (maxDiff > 0.01) return 14;
+    return 15;
+  })();
+
+  // Create markers array
+  const mapMarkers = [];
+  if (userLocation) {
+    mapMarkers.push({
+      id: "user",
+      coordinates: {
+        latitude: userLocation.coords.latitude,
+        longitude: userLocation.coords.longitude,
+      },
+      title: "Twoja Lokalizacja",
+      color: "#4CAF50",
+    });
+  }
+  if (startCoordinate) {
+    mapMarkers.push({
+      id: "start",
+      coordinates: startCoordinate,
+      title: "Start",
+      color: "#2196F3",
+    });
+  }
+  if (endCoordinate) {
+    mapMarkers.push({
+      id: "end",
+      coordinates: endCoordinate,
+      title: "Cel",
+      color: "#F44336",
+    });
+  }
 
   // Calculate journey progress based on time
   const calculateJourneyProgress = (): number => {
@@ -236,43 +306,43 @@ export default function LiveTrackScreen() {
                 <AppleMaps.View
                   style={styles.map}
                   cameraPosition={{
-                    coordinates: {
-                      latitude: userLocation.coords.latitude,
-                      longitude: userLocation.coords.longitude,
-                    },
-                    zoom: 14,
+                    coordinates: routeCenter,
+                    zoom: routeZoom,
                   }}
-                  markers={[
-                    {
-                      id: "user",
-                      coordinates: {
-                        latitude: userLocation.coords.latitude,
-                        longitude: userLocation.coords.longitude,
-                      },
-                      title: "Twoja Lokalizacja",
-                    },
-                  ]}
+                  markers={mapMarkers}
+                  polylines={
+                    routeGeometry.length > 0
+                      ? [
+                          {
+                            id: "route",
+                            coordinates: routeGeometry,
+                            color: "#2196F3",
+                            width: 5,
+                          },
+                        ]
+                      : []
+                  }
                 />
               ) : (
                 <GoogleMaps.View
                   style={styles.map}
                   cameraPosition={{
-                    coordinates: {
-                      latitude: userLocation.coords.latitude,
-                      longitude: userLocation.coords.longitude,
-                    },
-                    zoom: 14,
+                    coordinates: routeCenter,
+                    zoom: routeZoom,
                   }}
-                  markers={[
-                    {
-                      id: "user",
-                      coordinates: {
-                        latitude: userLocation.coords.latitude,
-                        longitude: userLocation.coords.longitude,
-                      },
-                      title: "Twoja Lokalizacja",
-                    },
-                  ]}
+                  markers={mapMarkers}
+                  polylines={
+                    routeGeometry.length > 0
+                      ? [
+                          {
+                            id: "route",
+                            coordinates: routeGeometry,
+                            color: "#2196F3",
+                            width: 5,
+                          },
+                        ]
+                      : []
+                  }
                 />
               ))}
 
@@ -306,30 +376,18 @@ export default function LiveTrackScreen() {
                 <AppleMaps.View
                   style={styles.map}
                   cameraPosition={{
-                    coordinates: {
-                      latitude: userLocation.coords.latitude,
-                      longitude: userLocation.coords.longitude,
-                    },
-                    zoom: 14,
+                    coordinates: routeCenter,
+                    zoom: routeZoom,
                   }}
-                  markers={[
-                    {
-                      id: "user",
-                      coordinates: {
-                        latitude: userLocation.coords.latitude,
-                        longitude: userLocation.coords.longitude,
-                      },
-                      title: "Your Location",
-                    },
-                  ]}
+                  markers={mapMarkers}
                   polylines={
-                    route.length > 0
+                    routeGeometry.length > 0
                       ? [
                           {
                             id: "route",
-                            coordinates: route, // [{ latitude, longitude }, ...]
-                            color: "blue",
-                            width: 4,
+                            coordinates: routeGeometry, // [{ latitude, longitude }, ...]
+                            color: "#2196F3",
+                            width: 5,
                           },
                         ]
                       : []
@@ -339,30 +397,18 @@ export default function LiveTrackScreen() {
                 <GoogleMaps.View
                   style={styles.map}
                   cameraPosition={{
-                    coordinates: {
-                      latitude: userLocation.coords.latitude,
-                      longitude: userLocation.coords.longitude,
-                    },
-                    zoom: 14,
+                    coordinates: routeCenter,
+                    zoom: routeZoom,
                   }}
-                  markers={[
-                    {
-                      id: "user",
-                      coordinates: {
-                        latitude: userLocation.coords.latitude,
-                        longitude: userLocation.coords.longitude,
-                      },
-                      title: "Your Location",
-                    },
-                  ]}
+                  markers={mapMarkers}
                   polylines={
-                    route.length > 0
+                    routeGeometry.length > 0
                       ? [
                           {
                             id: "route",
-                            coordinates: route,
-                            color: "blue",
-                            width: 4,
+                            coordinates: routeGeometry,
+                            color: "#2196F3",
+                            width: 5,
                           },
                         ]
                       : []

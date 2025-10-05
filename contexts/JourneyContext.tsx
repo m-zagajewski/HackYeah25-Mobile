@@ -50,6 +50,7 @@ interface ApiRouteResponse {
     walking_segments_count: number;
     transit_segments_count: number;
   };
+  detailed_geometry?: [number, number][]; // Array of [latitude, longitude] coordinates
 }
 
 const API_BASE_URL = 'http://192.168.2.2:8000/api/v1';
@@ -92,6 +93,7 @@ export interface Journey {
   stops?: Stop[]; // Lista wszystkich przystanków na trasie
   segments?: RouteSegment[]; // Segmenty trasy (walking + transit)
   currentStopIndex?: number; // Indeks obecnego przystanku
+  routeGeometry?: { latitude: number; longitude: number }[]; // Detailed route coordinates
 }
 
 interface JourneyContextType {
@@ -211,6 +213,13 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
   console.log('✅ Grouped segments:', segments.length, 'segments');
   console.log('📊 Grouped segment types:', segments.map(s => s.type));
   
+  // Convert detailed_geometry from [lat, lon] to {latitude, longitude}
+  const routeGeometry = apiResponse.detailed_geometry?.map(coord => ({
+    latitude: coord[0],
+    longitude: coord[1]
+  })) || [];
+  console.log('🗺️ Route geometry points:', routeGeometry.length);
+  
   if (isWalkingOnly) {
     // Walking-only route
     console.log('🚶 This is a walking-only route');
@@ -228,6 +237,7 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
       nextStop: allSegments[1]?.from_stop.name || firstSegment?.to_stop.name,
       segments,
       currentStopIndex: 0,
+      routeGeometry,
     };
   }
   
@@ -269,6 +279,7 @@ const transformApiResponseToJourney = (apiResponse: ApiRouteResponse): Journey =
     vehicleUuid: mainVehicle?.uuid,
     segments,
     currentStopIndex: 0,
+    routeGeometry,
   };
 };
 
